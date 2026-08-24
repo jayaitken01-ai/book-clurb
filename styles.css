@@ -231,6 +231,27 @@ button:focus-visible, .btn:focus-visible, a:focus-visible {
 .btn-block { width: 100%; }
 .btn-danger { background: var(--bad-bg); color: var(--bad-ink); }
 
+/* A round button that is only an icon — the settings gear in a page's
+   top corner. Sized to 44px so it's an easy thumb target on a phone. */
+.icon-btn {
+  width: 44px; height: 44px;
+  /* buttons carry 11px/20px padding by default, which would squeeze the
+     icon down to a couple of pixels inside a fixed 44px circle */
+  padding: 0;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--accent-200);
+  border-radius: 50%;
+  background: var(--accent-100);
+  color: var(--accent-700);
+  cursor: pointer;
+  transition: transform 0.2s var(--bounce), background 0.2s;
+}
+.icon-btn:hover, .icon-btn:focus-visible { background: var(--accent-200); }
+.icon-btn:active { transform: scale(0.94); }
+
 /* ---------------- forms ---------------- */
 label {
   display: block;

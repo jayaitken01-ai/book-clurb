@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase.js'
 import { useAuth } from '../lib/AuthContext.jsx'
-import { Avatar, MONTHS, Section, Spinner, monthYear, useToast } from '../components/ui.jsx'
+import { Avatar, MONTHS, Modal, Section, Spinner, monthYear, useToast } from '../components/ui.jsx'
 import Icon from '../components/Icon.jsx'
 import { ACCENTS, MODES, applyTheme } from '../lib/theme.js'
 
@@ -19,6 +19,7 @@ export default function Profile() {
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState(null)
   const [stats, setStats] = useState({ finished: 0, rated: 0, theories: 0 })
+  const [settings, setSettings] = useState(false)
   const fileRef = useRef(null)
   const [toast, showToast] = useToast()
 
@@ -124,11 +125,40 @@ export default function Profile() {
       {toast}
       <div className="between">
         <h1 style={{ margin: 0 }}>My profile</h1>
-        <Link to={`/member/${user.id}`} className="btn btn-ghost btn-sm">
-          <Icon name="users" size={15} /> How others see it
-        </Link>
+        <button
+          className="icon-btn"
+          onClick={() => setSettings(true)}
+          aria-label="Settings"
+          title="Settings"
+        >
+          <Icon name="gear" size={21} />
+        </button>
       </div>
       <p className="hand">member since {monthYear(profile?.created_at)}</p>
+
+      {settings && (
+        <Modal title="Settings" onClose={() => setSettings(false)}>
+          <ThemePicker
+            profile={profile}
+            userId={user.id}
+            onSaved={refreshProfile}
+            notify={showToast}
+          />
+
+          <div className="stack" style={{ marginTop: 16 }}>
+            <Link
+              to={`/member/${user.id}`}
+              className="btn btn-soft btn-block"
+              onClick={() => setSettings(false)}
+            >
+              <Icon name="users" size={16} /> See my profile the way others do
+            </Link>
+            <button className="btn-ghost" onClick={signOut}>
+              <Icon name="exit" size={16} /> Sign out
+            </button>
+          </div>
+        </Modal>
+      )}
 
       <div className="card" style={{ marginTop: 14 }}>
         <div className="row" style={{ gap: 16, marginBottom: 18 }}>
@@ -228,9 +258,6 @@ export default function Profile() {
         </form>
       </div>
 
-      <Section icon="sliders">How it looks</Section>
-      <ThemePicker profile={profile} userId={user.id} onSaved={refreshProfile} notify={showToast} />
-
       <Section icon="lock">My email</Section>
       <div className="card card-tight">
         <b style={{ fontSize: '0.95rem' }}>{user?.email}</b>
@@ -251,8 +278,8 @@ export default function Profile() {
         <Link to="/members" className="btn btn-soft btn-block">
           <Icon name="users" size={16} /> See all members
         </Link>
-        <button className="btn-ghost" onClick={signOut}>
-          <Icon name="exit" size={16} /> Sign out
+        <button className="btn-ghost" onClick={() => setSettings(true)}>
+          <Icon name="gear" size={16} /> Settings
         </button>
       </div>
     </div>
@@ -283,8 +310,10 @@ function ThemePicker({ profile, userId, onSaved, notify }) {
     await onSaved()
   }
 
+  // No card wrapper — this lives inside the settings sheet, which is
+  // already a panel of its own.
   return (
-    <div className="card">
+    <div>
       <label>Colour</label>
       <div className="swatches">
         {ACCENTS.map((a) => (
@@ -320,8 +349,9 @@ function ThemePicker({ profile, userId, onSaved, notify }) {
       </div>
 
       <p className="muted tiny" style={{ margin: '11px 0 0' }}>
-        Only you see this — everyone in the club picks their own. It follows you
-        to your other devices too.
+        Automatic follows whatever your phone is set to, so the app goes dark at
+        night with everything else. Only you see this — everyone in the club
+        picks their own, and it follows you to your other devices.
       </p>
     </div>
   )
