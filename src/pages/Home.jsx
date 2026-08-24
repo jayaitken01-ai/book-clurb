@@ -29,13 +29,25 @@ export default function Home() {
       .maybeSingle()
     setBook(current ?? null)
 
+    // Separate queries on purpose — see the note in Polls.jsx. `polls` and
+    // `poll_options` are linked twice, so asking for them together fails.
     const { data: openPolls } = await supabase
       .from('polls')
-      .select('*, poll_options(id, title), poll_votes(option_id)')
+      .select('*')
       .neq('phase', 'closed')
       .order('created_at', { ascending: false })
       .limit(1)
-    setPoll(openPolls?.[0] ?? null)
+
+    const live = openPolls?.[0] ?? null
+    if (live) {
+      const [{ data: options }, { data: votes }] = await Promise.all([
+        supabase.from('poll_options').select('id, title').eq('poll_id', live.id),
+        supabase.from('poll_votes').select('option_id').eq('poll_id', live.id),
+      ])
+      setPoll({ ...live, poll_options: options ?? [], poll_votes: votes ?? [] })
+    } else {
+      setPoll(null)
+    }
 
     const [{ count: finished }, { count: members }, { count: tbr }] = await Promise.all([
       supabase.from('books').select('id', { count: 'exact', head: true }).eq('status', 'finished'),

@@ -25,18 +25,54 @@ export default function Polls() {
   const [creating, setCreating] = useState(false)
   const [toast, showToast] = useToast()
 
+  const [loadError, setLoadError] = useState(null)
+
   const load = useCallback(async () => {
     // Let the database move any polls whose clock has run out.
     await supabase.rpc('settle_polls')
 
-    const [{ data }, { data: shelf }] = await Promise.all([
-      supabase
-        .from('polls')
-        .select('*, profiles(*), poll_options(*, profiles(*)), poll_votes(*)')
-        .order('created_at', { ascending: false }),
-      supabase.from('books').select('*').eq('status', 'tbr').order('created_at'),
-    ])
-    setPolls(data ?? [])
+    // Fetched as separate queries rather than one nested join.
+    // `polls` and `poll_options` are linked twice — once by which poll an
+    // option belongs to, and once by which option won — so asking for them
+    // together is ambiguous and fails the whole query. Keeping them apart
+    // sidesteps that entirely, and means one broken piece can't blank the page.
+    const { data: rows, error } = await supabase
+      .from('polls')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      setLoadError(error.message)
+      setPolls([])
+      return
+    }
+    setLoadError(null)
+
+    const ids = (rows ?? []).map((p) => p.id)
+    const [{ data: people }, { data: options }, { data: votes }, { data: shelf }] =
+      await Promise.all([
+        supabase.from('profiles').select('*'),
+        ids.length
+          ? supabase.from('poll_options').select('*').in('poll_id', ids).order('created_at')
+          : Promise.resolve({ data: [] }),
+        ids.length
+          ? supabase.from('poll_votes').select('*').in('poll_id', ids)
+          : Promise.resolve({ data: [] }),
+        supabase.from('books').select('*').eq('status', 'tbr').order('created_at'),
+      ])
+
+    const byId = Object.fromEntries((people ?? []).map((p) => [p.id, p]))
+
+    setPolls(
+      (rows ?? []).map((p) => ({
+        ...p,
+        profiles: byId[p.created_by] ?? null,
+        poll_options: (options ?? [])
+          .filter((o) => o.poll_id === p.id)
+          .map((o) => ({ ...o, profiles: byId[o.suggested_by] ?? null })),
+        poll_votes: (votes ?? []).filter((v) => v.poll_id === p.id),
+      }))
+    )
     setTbr(shelf ?? [])
   }, [])
 
@@ -69,6 +105,10 @@ export default function Polls() {
         )}
       </div>
       <p className="hand">everyone gets one suggestion and one vote</p>
+
+      {loadError && (
+        <div className="error-box">Couldn’t load polls: {loadError}</div>
+      )}
 
       {polls.length === 0 && (
         <Empty
