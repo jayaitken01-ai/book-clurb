@@ -5,6 +5,8 @@
 -- ============================================================
 
 -- ---------- clean slate (comment this block out once you have real data!) ----------
+drop table if exists meeting_rsvps cascade;
+drop table if exists meetings cascade;
 drop table if exists poll_votes cascade;
 drop table if exists poll_options cascade;
 drop table if exists polls cascade;
@@ -400,6 +402,33 @@ $$;
 grant execute on function settle_polls() to authenticated;
 
 -- ============================================================
+--  MEETINGS  (the board on the homepage)
+--  When we're meeting, where, and what we're doing — plus who's
+--  coming. Anyone can post one; anyone can RSVP.
+-- ============================================================
+create table meetings (
+  id         uuid primary key default gen_random_uuid(),
+  title      text not null default 'Book club',
+  agenda     text,                       -- what we'll be doing
+  location   text,
+  starts_at  timestamptz not null,
+  book_id    uuid references books(id) on delete set null,
+  created_by uuid references profiles(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+create index meetings_when_idx on meetings (starts_at);
+
+create table meeting_rsvps (
+  meeting_id uuid not null references meetings(id) on delete cascade,
+  user_id    uuid not null references profiles(id) on delete cascade,
+  response   text not null check (response in ('going', 'cant')),
+  note       text,
+  updated_at timestamptz not null default now(),
+  primary key (meeting_id, user_id)      -- one answer each, changeable
+);
+
+-- ============================================================
 --  ROW LEVEL SECURITY
 --  Rule of thumb: signed-in members can READ everything and only
 --  EDIT their own stuff. The one exception is chapter updates,
@@ -415,6 +444,8 @@ alter table theory_categories    enable row level security;
 alter table theory_threads       enable row level security;
 alter table thread_replies       enable row level security;
 alter table thread_likes         enable row level security;
+alter table meetings             enable row level security;
+alter table meeting_rsvps        enable row level security;
 alter table polls                enable row level security;
 alter table poll_options         enable row level security;
 alter table poll_votes           enable row level security;
@@ -475,6 +506,17 @@ create policy "own reply delete"     on thread_replies for delete to authenticat
 create policy "members read thread likes" on thread_likes for select to authenticated using (true);
 create policy "own thread like insert"    on thread_likes for insert to authenticated with check (auth.uid() = user_id);
 create policy "own thread like delete"    on thread_likes for delete to authenticated using (auth.uid() = user_id);
+
+-- MEETINGS — anyone can post one, anyone can RSVP, only the poster edits it
+create policy "members read meetings"   on meetings for select to authenticated using (true);
+create policy "members post meetings"   on meetings for insert to authenticated with check (auth.uid() = created_by);
+create policy "poster edits meeting"    on meetings for update to authenticated using (auth.uid() = created_by);
+create policy "poster deletes meeting"  on meetings for delete to authenticated using (auth.uid() = created_by);
+
+create policy "members read rsvps" on meeting_rsvps for select to authenticated using (true);
+create policy "own rsvp insert"    on meeting_rsvps for insert to authenticated with check (auth.uid() = user_id);
+create policy "own rsvp update"    on meeting_rsvps for update to authenticated using (auth.uid() = user_id);
+create policy "own rsvp delete"    on meeting_rsvps for delete to authenticated using (auth.uid() = user_id);
 
 -- POLLS — every member can create one
 create policy "members read polls"   on polls for select to authenticated using (true);
@@ -547,6 +589,8 @@ create policy "members delete images" on storage.objects for delete to authentic
 -- ============================================================
 alter publication supabase_realtime add table poll_votes;
 alter publication supabase_realtime add table poll_options;
+alter publication supabase_realtime add table meetings;
+alter publication supabase_realtime add table meeting_rsvps;
 alter publication supabase_realtime add table chapter_updates;
 alter publication supabase_realtime add table theory_threads;
 alter publication supabase_realtime add table thread_replies;

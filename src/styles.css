@@ -387,6 +387,73 @@ textarea { resize: vertical; min-height: 88px; line-height: 1.5; }
 }
 .option .inner { position: relative; z-index: 1; display: flex; align-items: center; gap: 10px; }
 
+/* ---------------- meetings board ---------------- */
+.meeting { border-color: var(--pink-200); }
+
+.datechip {
+  flex: none;
+  width: 54px;
+  border-radius: 16px 14px 16px 14px;
+  background: linear-gradient(160deg, var(--pink-400), var(--pink-600));
+  color: #fff;
+  text-align: center;
+  padding: 7px 0 8px;
+  box-shadow: 0 6px 14px rgba(217, 75, 135, 0.3);
+}
+.datechip .mon {
+  display: block;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+.datechip .day {
+  display: block;
+  font-family: var(--font-display);
+  font-variation-settings: 'SOFT' 100, 'WONK' 1;
+  font-size: 1.55rem;
+  line-height: 1.05;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.rsvp { display: flex; gap: 8px; margin-top: 14px; }
+.rsvp-btn {
+  flex: 1;
+  font-size: 0.8rem;
+  padding: 10px 8px;
+  border: 1.5px solid var(--line);
+  background: #fff;
+  color: var(--ink-soft);
+  gap: 6px;
+}
+.rsvp-btn b { font-variant-numeric: tabular-nums; }
+.rsvp-btn.yes.on {
+  background: #ddf5ec;
+  border-color: #7fcfb0;
+  color: #2f8467;
+}
+.rsvp-btn.no.on {
+  background: var(--pink-100);
+  border-color: var(--pink-300);
+  color: var(--pink-700);
+}
+
+.faces { display: inline-flex; }
+.faces > span + span { margin-left: -8px; }
+
+.no-meeting {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  border: 1.5px dashed var(--pink-200);
+  border-radius: var(--radius);
+  padding: 15px 17px;
+  color: var(--ink-soft);
+}
+.no-meeting .icon { color: var(--pink-400); }
+
 /* ---------------- poll phases ---------------- */
 .phase {
   display: flex;

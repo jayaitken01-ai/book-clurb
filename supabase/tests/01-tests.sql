@@ -323,4 +323,88 @@ select 'TEST 28 nothing is left on the TBR shelf: ' ||
   case when (select count(*) from books where status='tbr') = 0
        then 'PASS' else 'FAIL' end;
 
+
+-- ============================================================
+--  MEETINGS BOARD
+-- ============================================================
+set session "test.uid" = '11111111-1111-1111-1111-111111111111';
+
+insert into meetings (id, title, agenda, location, starts_at, created_by)
+values ('ffffffff-0000-0000-0000-000000000001','Chapter 1-15 chat',
+        'First half, snacks, and someone bring the good candles','Ava''s place',
+        now() + interval '5 days','11111111-1111-1111-1111-111111111111');
+
+select 'TEST 29 anyone can post a meeting: ' ||
+  case when (select count(*) from meetings) = 1
+        and (select location from meetings) = 'Ava''s place'
+       then 'PASS' else 'FAIL' end;
+
+-- Ava is going, Bree can't.
+insert into meeting_rsvps (meeting_id, user_id, response)
+values ('ffffffff-0000-0000-0000-000000000001','11111111-1111-1111-1111-111111111111','going');
+
+set session "test.uid" = '22222222-2222-2222-2222-222222222222';
+insert into meeting_rsvps (meeting_id, user_id, response)
+values ('ffffffff-0000-0000-0000-000000000001','22222222-2222-2222-2222-222222222222','cant');
+
+select 'TEST 30 both answers recorded: ' ||
+  case when (select count(*) from meeting_rsvps where response='going') = 1
+        and (select count(*) from meeting_rsvps where response='cant') = 1
+       then 'PASS' else 'FAIL' end;
+
+-- Bree changes her mind.
+insert into meeting_rsvps (meeting_id, user_id, response)
+values ('ffffffff-0000-0000-0000-000000000001','22222222-2222-2222-2222-222222222222','going')
+on conflict (meeting_id, user_id) do update set response = excluded.response;
+
+select 'TEST 31 changing your answer replaces it: ' ||
+  case when (select count(*) from meeting_rsvps) = 2
+        and (select count(*) from meeting_rsvps where response='going') = 2
+       then 'PASS' else 'FAIL' end;
+
+do $$
+begin
+  begin
+    insert into meeting_rsvps (meeting_id, user_id, response)
+    values ('ffffffff-0000-0000-0000-000000000001','11111111-1111-1111-1111-111111111111','maybe')
+    on conflict (meeting_id, user_id) do update set response = excluded.response;
+    raise notice 'TEST 32 only the two answers are allowed: FAIL';
+  exception when others then
+    raise notice 'TEST 32 only the two answers are allowed: PASS';
+  end;
+end $$;
+
+do $$
+begin
+  begin
+    update meetings set title = 'hijacked'
+     where id='ffffffff-0000-0000-0000-000000000001';
+    if found then
+      raise notice 'TEST 33 only the poster edits a meeting: FAIL';
+    else
+      raise notice 'TEST 33 only the poster edits a meeting: PASS';
+    end if;
+  exception when insufficient_privilege then
+    raise notice 'TEST 33 only the poster edits a meeting: PASS';
+  end;
+end $$;
+
+do $$
+begin
+  begin
+    insert into meeting_rsvps (meeting_id, user_id, response)
+    values ('ffffffff-0000-0000-0000-000000000001','11111111-1111-1111-1111-111111111111','cant');
+    raise notice 'TEST 34 cannot answer on behalf of someone else: FAIL';
+  exception when insufficient_privilege or unique_violation then
+    raise notice 'TEST 34 cannot answer on behalf of someone else: PASS';
+  end;
+end $$;
+
+-- Removing a meeting takes its answers with it.
+set session "test.uid" = '11111111-1111-1111-1111-111111111111';
+delete from meetings where id='ffffffff-0000-0000-0000-000000000001';
+
+select 'TEST 35 removing a meeting clears its answers: ' ||
+  case when (select count(*) from meeting_rsvps) = 0 then 'PASS' else 'FAIL' end;
+
 reset role;

@@ -42,6 +42,8 @@ const PATHS = {
   mail:      <><rect x="3.4" y="5.8" width="17.2" height="12.4" rx="2.2"/><path d="m4.4 7.4 7.6 5.6 7.6-5.6"/></>,
   phone:     <><path d="M8.2 3.9h7.6v16.2H8.2Z"/><path d="M10.9 5.9h2.2"/><path d="M11.4 17.6h1.2"/></>,
   hourglass: <><path d="M7 4h10M7 20h10"/><path d="M7.6 4c0 4 4.4 5.4 4.4 8s-4.4 4-4.4 8"/><path d="M16.4 4c0 4-4.4 5.4-4.4 8s4.4 4 4.4 8"/></>,
+  calendar:  <><rect x="3.6" y="5.4" width="16.8" height="15" rx="2.4"/><path d="M3.6 10.2h16.8"/><path d="M8.2 3.4v3.6M15.8 3.4v3.6"/></>,
+  cross:     <><path d="M6.6 6.6 17.4 17.4M17.4 6.6 6.6 17.4"/></>,
 }
 
 export default function Icon({ name, size = 20, filled = false, style, ...rest }) {

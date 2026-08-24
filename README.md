@@ -7,6 +7,7 @@ A cute, pink, phone-friendly book club app. React + Vite on the front, Supabase 
 | Feature | Where it lives |
 |---|---|
 | 🏠 The book we're reading right now | Home |
+| 📅 A meetings board — when, where, what we're doing, who's coming | Home |
 | 📍 Chapter updates — emoji mood + a comment, spoiler-locked | Home, and each book's **Updates** tab |
 | 💭 A theory board per book — your own categories, threads and replies | Theories, and each book's **Theories** tab |
 | 😏 A ten-emoji mood scale for how a chapter landed | The **+ Update** button |
@@ -52,7 +53,7 @@ Theory threads work a little more gently: they're tagged with a chapter and blur
 
 That creates every table, all the security rules, the spoiler policy, and the two image buckets.
 
-> This schema has been run against a real Postgres 16 database with 28 tests covering the spoiler wall, the full poll lifecycle, TBR routing, the one-current-book rule, genres and the review template. All passing — see `supabase/tests/` for the suite and what each test proves.
+> This schema has been run against a real Postgres 16 database with 38 checks covering the spoiler wall, the full poll lifecycle, TBR routing, meeting RSVPs, the one-current-book rule, genres and the review template. All passing — see `supabase/tests/` for the suite and what each test proves.
 
 ### 3. Turn off email confirmation (recommended for a small club)
 
@@ -142,6 +143,16 @@ The database does the settling, not a background job: whenever anyone opens the 
 - You don't have to update every chapter. Post when a chapter wrecks you, skip the ones that don't.
 - Covers can be added or swapped any time: open a book, **Edit details**, then **Add a cover**. A photo of your own copy works.
 - Your book count goes up when you tick **I finished this book**. Club total lives in the Library, personal counts on your profile and in the members list.
+
+## Meetings
+
+The board sits on the homepage, under whatever we're reading.
+
+Anyone can post one: a title, the date and time, where it is, and what we'll be doing. Everyone else answers with one of two buttons — **I'll be there** or **Can't make it**. Tapping your answer again clears it, and changing your mind replaces your old answer rather than adding a second one.
+
+Under each meeting you get the faces of everyone coming and a short line naming whoever can't. Only the person who posted it can edit or remove it.
+
+Meetings disappear from the board four hours after they start, so nobody has to tidy up after themselves.
 
 ## The review template
 

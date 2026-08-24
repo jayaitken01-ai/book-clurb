@@ -5,6 +5,7 @@ import { useAuth } from '../lib/AuthContext.jsx'
 import { Avatar, Countdown, Cover, Empty, Section, Spinner } from '../components/ui.jsx'
 import Icon from '../components/Icon.jsx'
 import ChapterFeed from '../components/ChapterFeed.jsx'
+import Meetings from '../components/Meetings.jsx'
 
 export default function Home() {
   const { user, profile } = useAuth()
@@ -114,6 +115,15 @@ export default function Home() {
             </div>
           </div>
 
+        </>
+      )}
+
+      {/* ---------- meetings board ---------- */}
+      <Meetings userId={user.id} currentBook={book} />
+
+      {/* ---------- chapter updates ---------- */}
+      {book && (
+        <>
           <div className="section-title">
             <Icon name="pin" size={19} />
             Chapter updates

@@ -42,6 +42,13 @@ just claimed, and so you can re-run them if you ever change `schema.sql`.
 | 26 | The previous book is retired, not deleted |
 | 27 | A TBR book suggested again is promoted, not duplicated |
 | 28 | A promoted TBR book leaves the TBR shelf |
+| 29 | Anyone can post a meeting |
+| 30 | Both "I'll be there" and "Can't make it" are recorded |
+| 31 | Changing your answer replaces it rather than adding one |
+| 32 | Only those two answers are accepted |
+| 33 | Only the person who posted a meeting can edit it |
+| 34 | You can't answer on someone else's behalf |
+| 35 | Removing a meeting takes its answers with it |
 
 ## Running them
 
