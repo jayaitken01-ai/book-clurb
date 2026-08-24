@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { supabase } from './supabase.js'
+import { applyTheme } from './theme.js'
 
 const AuthContext = createContext(null)
 
@@ -22,6 +23,8 @@ export function AuthProvider({ children }) {
 
     if (data) {
       setProfile(data)
+      // Your colours follow you between devices.
+      applyTheme({ accent: data.theme, mode: data.dark_mode })
       return
     }
 

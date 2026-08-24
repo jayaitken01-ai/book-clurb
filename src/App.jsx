@@ -35,7 +35,7 @@ export default function App() {
             All Booked Up can’t find your Supabase keys. Create a file called <code>.env</code> in
             the project folder with:
           </p>
-          <pre style={{ background: '#fff', padding: 12, borderRadius: 12, overflowX: 'auto' }}>
+          <pre style={{ background: 'var(--surface)', padding: 12, borderRadius: 12, overflowX: 'auto' }}>
 {`VITE_SUPABASE_URL=https://yourproject.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key`}
           </pre>

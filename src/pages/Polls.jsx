@@ -345,7 +345,7 @@ function PollCard({ poll, userId, tbr, onChange, notify }) {
                           <span className="tiny muted" style={{ display: 'block' }}>{o.genres.join(' · ')}</span>
                         )}
                       </span>
-                      <b style={{ color: 'var(--pink-600)' }}>{count}</b>
+                      <b style={{ color: 'var(--accent-600)' }}>{count}</b>
                     </span>
                   </button>
                 )
@@ -537,7 +537,7 @@ function SuggestBook({ poll, userId, tbr, onClose, onAdded }) {
                 <b style={{ display: 'block', fontSize: '0.9rem' }}>{b.title}</b>
                 {b.author && <span className="tiny muted">{b.author}</span>}
               </span>
-              {pick === b.id && <Icon name="check" size={18} style={{ color: 'var(--pink-500)' }} />}
+              {pick === b.id && <Icon name="check" size={18} style={{ color: 'var(--accent-500)' }} />}
             </button>
           ))}
         </div>

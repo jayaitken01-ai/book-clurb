@@ -229,7 +229,7 @@ function PollPreview({ poll }) {
                 : 'Voting is open, nobody has voted yet'}
         </p>
 
-        <p className="tiny" style={{ margin: '10px 0 0', color: 'var(--pink-600)', fontWeight: 800 }}>
+        <p className="tiny" style={{ margin: '10px 0 0', color: 'var(--accent-600)', fontWeight: 800 }}>
           {closed ? 'See the full result' : collecting ? 'Tap to suggest' : 'Tap to vote'}
         </p>
       </div>

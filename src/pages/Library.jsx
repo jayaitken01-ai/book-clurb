@@ -255,7 +255,7 @@ function BookTile({ book, onOpen }) {
       {avg && (
         <div className="row" style={{ gap: 4, marginTop: 3 }}>
           <Stars value={Math.round(avg)} size={11} />
-          <span className="tiny" style={{ color: 'var(--pink-600)', fontWeight: 800 }}>{avg.toFixed(1)}</span>
+          <span className="tiny" style={{ color: 'var(--accent-600)', fontWeight: 800 }}>{avg.toFixed(1)}</span>
         </div>
       )}
       {!book.cover_url && (

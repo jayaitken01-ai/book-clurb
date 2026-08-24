@@ -369,7 +369,7 @@ function ChapterPicker({ book, current, finished, onClose, onSave }) {
           type="checkbox"
           checked={done}
           onChange={(e) => setDone(e.target.checked)}
-          style={{ width: 18, height: 18, accentColor: 'var(--pink-500)' }}
+          style={{ width: 18, height: 18, accentColor: 'var(--accent-500)' }}
         />
         <span style={{ fontSize: '0.92rem', color: 'var(--ink)' }}>
           I finished this book — show me everything
