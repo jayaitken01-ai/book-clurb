@@ -223,11 +223,11 @@ function AddBook({ userId, onClose, onAdded }) {
 
       <div className="field">
         <label>Title</label>
-        <input value={form.title} onChange={set('title')} placeholder="Fourth Wing" />
+        <input value={form.title} onChange={set('title')} placeholder="What's it called?" />
       </div>
       <div className="field">
         <label>Author</label>
-        <input value={form.author} onChange={set('author')} placeholder="Rebecca Yarros" />
+        <input value={form.author} onChange={set('author')} placeholder="Who wrote it?" />
       </div>
       <div className="grid-2">
         <div className="field">

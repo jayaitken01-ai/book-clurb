@@ -47,11 +47,23 @@ create table profiles (
   id          uuid primary key references auth.users on delete cascade,
   full_name   text not null default 'New member',
   phone       text,
-  email       text,
   avatar_url  text,
   bio         text,
-  created_at  timestamptz not null default now()
+  -- a few favourites, shown on your profile
+  fav_book    text,
+  fav_author  text,
+  fav_genre   text,
+  -- birthday is month + day only, so nobody's age is on show
+  birth_month int check (birth_month between 1 and 12),
+  birth_day   int check (birth_day between 1 and 31),
+  created_at  timestamptz not null default now()   -- "member since"
 );
+
+-- NOTE: there is deliberately no email column. Email addresses live in
+-- Supabase's own auth system, which this app's public key cannot read.
+-- Keeping a second copy here would be the only way for one member to see
+-- another's address, so we simply don't. You see your own on your profile
+-- because the app reads it from your signed-in session.
 
 -- Create a profile row automatically the moment someone signs up.
 create or replace function handle_new_user()
@@ -60,11 +72,10 @@ language plpgsql
 security definer set search_path = public
 as $$
 begin
-  insert into public.profiles (id, full_name, email, phone)
+  insert into public.profiles (id, full_name, phone)
   values (
     new.id,
     coalesce(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1)),
-    new.email,
     new.raw_user_meta_data->>'phone'
   );
   return new;
@@ -83,10 +94,9 @@ create trigger on_auth_user_created
 -- without a profile row — signed in, but invisible to the app, and
 -- unable to sign up again because their email is already taken.
 -- This puts them back. It's safe to run any number of times.
-insert into public.profiles (id, full_name, email, phone)
+insert into public.profiles (id, full_name, phone)
 select u.id,
        coalesce(u.raw_user_meta_data->>'full_name', split_part(u.email, '@', 1)),
-       u.email,
        u.raw_user_meta_data->>'phone'
   from auth.users u
   left join public.profiles p on p.id = u.id

@@ -432,11 +432,11 @@ function SuggestBook({ poll, userId, tbr, onClose, onAdded }) {
         <>
           <div className="field">
             <label>Title</label>
-            <input value={form.title} onChange={set('title')} placeholder="Babel" />
+            <input value={form.title} onChange={set('title')} placeholder="What's it called?" />
           </div>
           <div className="field">
             <label>Author</label>
-            <input value={form.author} onChange={set('author')} placeholder="R. F. Kuang" />
+            <input value={form.author} onChange={set('author')} placeholder="Who wrote it?" />
           </div>
           <div className="field">
             <label>Genres</label>
@@ -569,11 +569,11 @@ function NewPoll({ userId, tbr, onClose, onCreated }) {
         <>
           <div className="field">
             <label>Title</label>
-            <input value={form.title} onChange={set('title')} placeholder="Iron Flame" />
+            <input value={form.title} onChange={set('title')} placeholder="What's it called?" />
           </div>
           <div className="field">
             <label>Author</label>
-            <input value={form.author} onChange={set('author')} placeholder="Rebecca Yarros" />
+            <input value={form.author} onChange={set('author')} placeholder="Who wrote it?" />
           </div>
           <div className="field">
             <label>Genres</label>

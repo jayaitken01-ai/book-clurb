@@ -34,8 +34,8 @@ export function AuthProvider({ children }) {
       .from('profiles')
       .insert({
         id: user.id,
+        // Deliberately no email — it lives in the auth session, not here.
         full_name: meta.full_name || user.email?.split('@')[0] || 'New member',
-        email: user.email ?? null,
         phone: meta.phone ?? null,
       })
       .select()

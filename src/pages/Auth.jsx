@@ -86,7 +86,7 @@ export default function Auth() {
             <>
               <div className="field">
                 <label>Your name</label>
-                <input value={form.full_name} onChange={set('full_name')} placeholder="Ella Rose" required />
+                <input value={form.full_name} onChange={set('full_name')} placeholder="Your name" required />
               </div>
               <div className="field">
                 <label>Phone number</label>

@@ -12,6 +12,7 @@ import Library from './pages/Library.jsx'
 import BookPage from './pages/BookPage.jsx'
 import Profile from './pages/Profile.jsx'
 import Members from './pages/Members.jsx'
+import MemberProfile from './pages/MemberProfile.jsx'
 
 const TABS = [
   { to: '/',         icon: 'home',    label: 'Home' },
@@ -70,7 +71,8 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
         <Route path="/library"   element={<Library />} />
         <Route path="/book/:id"  element={<BookPage />} />
         <Route path="/profile"   element={<Profile />} />
-        <Route path="/members"   element={<Members />} />
+        <Route path="/members"    element={<Members />} />
+        <Route path="/member/:id" element={<MemberProfile />} />
         <Route path="*"          element={<Navigate to="/" replace />} />
       </Routes>
     </div>

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
-import { Avatar, Empty, LikeButton, Modal, Spinner, timeAgo } from './ui.jsx'
+import { Avatar, AvatarLink, Empty, LikeButton, Modal, NameLink, Spinner, timeAgo } from './ui.jsx'
 import Icon from './Icon.jsx'
 
 const EMOJI_CHOICES = ['💭', '🔮', '👥', '💬', '💔', '🔥', '🕵️', '👑', '🌙', '⚔️', '🎭', '📌']
@@ -155,9 +155,9 @@ function Thread({ thread, category, myChapter, userId, onChange }) {
   return (
     <div className="card">
       <div className="row" style={{ gap: 11, marginBottom: 10 }}>
-        <Avatar profile={thread.profiles} size={38} />
+        <AvatarLink profile={thread.profiles} size={38} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <b>{thread.profiles?.full_name ?? 'Someone'}</b>
+          <NameLink profile={thread.profiles} />
           <div className="tiny muted">{timeAgo(thread.created_at)}</div>
         </div>
         {category && <span className="pill pill-lilac">{category.emoji} {category.name}</span>}
@@ -199,10 +199,10 @@ function Thread({ thread, category, myChapter, userId, onChange }) {
           <div className="stack" style={{ gap: 11 }}>
             {replies.map((r) => (
               <div className="row" key={r.id} style={{ alignItems: 'flex-start', gap: 9 }}>
-                <Avatar profile={r.profiles} size={28} />
+                <AvatarLink profile={r.profiles} size={28} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <span className="tiny">
-                    <b>{r.profiles?.full_name ?? 'Someone'}</b>{' '}
+                    <NameLink profile={r.profiles} />{' '}
                     <span className="muted">{timeAgo(r.created_at)}</span>
                   </span>
                   <p style={{ margin: '2px 0 0', fontSize: '0.88rem', lineHeight: 1.5 }}>{r.body}</p>

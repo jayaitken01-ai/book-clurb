@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { MOODS, moodOf } from '../lib/moods.js'
-import { Avatar, Empty, LikeButton, Modal, Spinner, timeAgo } from './ui.jsx'
+import { Avatar, AvatarLink, Empty, LikeButton, Modal, NameLink, Spinner, timeAgo } from './ui.jsx'
 import Icon from './Icon.jsx'
 
 /**
@@ -159,10 +159,10 @@ function UpdateCard({ update, userId, onChange }) {
   return (
     <div className="card card-tight">
       <div className="row" style={{ gap: 11, alignItems: 'flex-start' }}>
-        <Avatar profile={update.profiles} size={40} />
+        <AvatarLink profile={update.profiles} size={40} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="between">
-            <b style={{ fontSize: '0.92rem' }}>{update.profiles?.full_name ?? 'Someone'}</b>
+            <NameLink profile={update.profiles} style={{ fontSize: '0.92rem' }} />
             <span className="tiny muted">{timeAgo(update.created_at)}</span>
           </div>
           <div className="row-wrap" style={{ gap: 6, marginTop: 5 }}>

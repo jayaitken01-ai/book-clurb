@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { Link } from 'react-router-dom'
 import Icon from './Icon.jsx'
 
 /* ---------- Avatar ---------- */
@@ -17,6 +18,27 @@ export function Avatar({ profile, size = 40 }) {
     return <img className="avatar" style={style} src={profile.avatar_url} alt={profile.full_name} />
   }
   return <span className="avatar" style={style}>{initials}</span>
+}
+
+/* ---------- Avatar that opens someone's profile ---------- */
+export function AvatarLink({ profile, size = 40 }) {
+  if (!profile?.id) return <Avatar profile={profile} size={size} />
+  return (
+    <Link to={`/member/${profile.id}`} className="person" aria-label={profile.full_name}>
+      <Avatar profile={profile} size={size} />
+    </Link>
+  )
+}
+
+/* ---------- Name that opens someone's profile ---------- */
+export function NameLink({ profile, fallback = 'Someone', ...rest }) {
+  const name = profile?.full_name ?? fallback
+  if (!profile?.id) return <b {...rest}>{name}</b>
+  return (
+    <Link to={`/member/${profile.id}`} className="person-name" {...rest}>
+      {name}
+    </Link>
+  )
 }
 
 /* ---------- Book cover ---------- */
@@ -170,6 +192,24 @@ export function timeAgo(iso) {
   const days = Math.floor(hrs / 24)
   if (days < 7) return `${days}d ago`
   return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+}
+
+export const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+]
+
+/** "14 March" from a month + day, or null if either is missing. */
+export function birthdayLabel(month, day) {
+  if (!month || !day) return null
+  return new Date(2001, month - 1, day)
+    .toLocaleDateString(undefined, { month: 'long', day: 'numeric' })
+}
+
+/** "March 2026" — used for "member since". */
+export function monthYear(iso) {
+  if (!iso) return ''
+  return new Date(iso).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
 }
 
 /** "1d 4h left" / "22 minutes left" / "any moment now" */

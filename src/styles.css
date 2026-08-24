@@ -393,6 +393,64 @@ textarea { resize: vertical; min-height: 88px; line-height: 1.5; }
 }
 .option .inner { position: relative; z-index: 1; display: flex; align-items: center; gap: 10px; }
 
+/* ---------------- people ---------------- */
+.person { display: inline-flex; border-radius: 50%; text-decoration: none; }
+.person:hover .avatar { box-shadow: 0 0 0 3px var(--pink-200); }
+
+.person-name {
+  font-weight: 800;
+  color: var(--ink);
+  text-decoration: none;
+}
+.person-name:hover { color: var(--pink-600); text-decoration: underline; }
+
+.member-row {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  text-decoration: none;
+  color: inherit;
+  width: 100%;
+}
+.member-row .chev { color: var(--pink-300); flex: none; }
+.member-card { transition: border-color 0.18s, transform 0.18s var(--bounce); }
+.member-card:hover { border-color: var(--pink-300); transform: translateY(-2px); }
+
+.facts { display: flex; flex-direction: column; gap: 9px; }
+.fact {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  background: var(--pink-50);
+  border-radius: var(--radius-sm);
+  padding: 11px 13px;
+}
+.fact .icon { color: var(--pink-500); margin-top: 2px; }
+.fact b {
+  display: block;
+  font-family: var(--font-hand);
+  font-size: 1rem;
+  color: var(--pink-600);
+  line-height: 1.2;
+}
+.fact span { font-size: 0.92rem; }
+
+.private-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--lilac-200);
+  color: var(--lilac-600);
+  border-radius: var(--radius-sm);
+  padding: 10px 13px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+/* stat tiles that go somewhere */
+a.stat { text-decoration: none; display: block; transition: transform 0.18s var(--bounce), border-color 0.18s; }
+a.stat:hover { transform: translateY(-3px); border-color: var(--pink-300); }
+
 /* ---------------- meetings board ---------------- */
 .meeting { border-color: var(--pink-200); }
 

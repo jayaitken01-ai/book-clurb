@@ -162,9 +162,15 @@ export default function Home() {
       {/* ---------- club stats ---------- */}
       <Section icon="heart">Our club</Section>
       <div className="grid-3">
-        <div className="stat"><b>{stats.finished}</b><span>books finished</span></div>
-        <div className="stat"><b>{stats.members}</b><span>members</span></div>
-        <div className="stat"><b>{stats.tbr}</b><span>on the TBR</span></div>
+        <Link to="/library" className="stat">
+          <b>{stats.finished}</b><span>books finished</span>
+        </Link>
+        <Link to="/members" className="stat">
+          <b>{stats.members}</b><span>members</span>
+        </Link>
+        <Link to="/library?view=tbr" className="stat">
+          <b>{stats.tbr}</b><span>on the TBR</span>
+        </Link>
       </div>
     </div>
   )

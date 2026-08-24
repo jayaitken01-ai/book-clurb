@@ -3,7 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase.js'
 import { useAuth } from '../lib/AuthContext.jsx'
 import {
-  Avatar, Cover, Empty, Modal, RecommendPill, Section, Spinner, Stars, timeAgo, useToast,
+  Avatar, AvatarLink, Cover, Empty, Modal, NameLink, RecommendPill, Section, Spinner, Stars, timeAgo, useToast,
 } from '../components/ui.jsx'
 import Icon from '../components/Icon.jsx'
 import TheoryBoard from '../components/TheoryBoard.jsx'
@@ -230,10 +230,13 @@ function ReviewCard({ review, isMine }) {
   return (
     <div className="card">
       <div className="row" style={{ gap: 11, marginBottom: 9 }}>
-        <Avatar profile={review.profiles} size={40} />
+        <AvatarLink profile={review.profiles} size={40} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="between">
-            <b>{review.profiles?.full_name ?? 'Someone'}{isMine && <span className="muted tiny"> · you</span>}</b>
+            <span>
+              <NameLink profile={review.profiles} />
+              {isMine && <span className="muted tiny"> · you</span>}
+            </span>
             <span className="tiny muted">{timeAgo(review.updated_at ?? review.created_at)}</span>
           </div>
           <div className="row" style={{ gap: 7, marginTop: 3 }}>

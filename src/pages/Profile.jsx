@@ -2,8 +2,14 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase.js'
 import { useAuth } from '../lib/AuthContext.jsx'
-import { Avatar, Section, Spinner, useToast } from '../components/ui.jsx'
+import { Avatar, MONTHS, Section, Spinner, monthYear, useToast } from '../components/ui.jsx'
 import Icon from '../components/Icon.jsx'
+
+const BLANK = {
+  full_name: '', phone: '', bio: '',
+  fav_book: '', fav_author: '', fav_genre: '',
+  birth_month: '', birth_day: '',
+}
 
 export default function Profile() {
   const { user, profile, refreshProfile, signOut } = useAuth()
@@ -16,15 +22,14 @@ export default function Profile() {
   const [toast, showToast] = useToast()
 
   useEffect(() => {
-    if (profile) {
-      setForm({
-        full_name: profile.full_name || '',
-        phone: profile.phone || '',
-        email: profile.email || user?.email || '',
-        bio: profile.bio || '',
-      })
-    }
-  }, [profile, user])
+    if (!profile) return
+    setForm({
+      ...BLANK,
+      ...Object.fromEntries(
+        Object.keys(BLANK).map((k) => [k, profile[k] ?? BLANK[k]])
+      ),
+    })
+  }, [profile])
 
   useEffect(() => {
     if (!user) return
@@ -45,15 +50,21 @@ export default function Profile() {
     e.preventDefault()
     setBusy(true)
     setError(null)
+
     const { error } = await supabase
       .from('profiles')
       .update({
         full_name: form.full_name.trim(),
         phone: form.phone.trim() || null,
-        email: form.email.trim() || null,
         bio: form.bio.trim() || null,
+        fav_book: form.fav_book.trim() || null,
+        fav_author: form.fav_author.trim() || null,
+        fav_genre: form.fav_genre.trim() || null,
+        birth_month: form.birth_month ? Number(form.birth_month) : null,
+        birth_day: form.birth_day ? Number(form.birth_day) : null,
       })
       .eq('id', user.id)
+
     setBusy(false)
     if (error) return setError(error.message)
     await refreshProfile()
@@ -94,14 +105,31 @@ export default function Profile() {
     showToast('New photo saved')
   }
 
+  async function removeAvatar() {
+    await supabase.from('profiles').update({ avatar_url: null }).eq('id', user.id)
+    await refreshProfile()
+    showToast('Photo removed')
+  }
+
   if (!form) return <Spinner />
+
+  // Days that actually exist in the chosen month (ignoring leap years —
+  // February gets 29 so nobody born on the 29th is turned away).
+  const daysInMonth = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+  const maxDay = form.birth_month ? daysInMonth[Number(form.birth_month) - 1] : 31
 
   return (
     <div className="page">
       {toast}
-      <h1>My profile</h1>
+      <div className="between">
+        <h1 style={{ margin: 0 }}>My profile</h1>
+        <Link to={`/member/${user.id}`} className="btn btn-ghost btn-sm">
+          <Icon name="users" size={15} /> How others see it
+        </Link>
+      </div>
+      <p className="hand">member since {monthYear(profile?.created_at)}</p>
 
-      <div className="card">
+      <div className="card" style={{ marginTop: 14 }}>
         <div className="row" style={{ gap: 16, marginBottom: 18 }}>
           <Avatar profile={profile} size={84} />
           <div>
@@ -113,6 +141,11 @@ export default function Profile() {
               <Icon name="camera" size={15} /> {uploading ? 'Uploading…' : 'Change photo'}
             </button>
             <p className="muted tiny" style={{ margin: '7px 0 0' }}>JPG or PNG, under 5 MB</p>
+            {profile?.avatar_url && (
+              <button className="btn-ghost btn-sm" style={{ marginTop: 2 }} onClick={removeAvatar}>
+                Remove
+              </button>
+            )}
             <input
               ref={fileRef}
               type="file"
@@ -130,27 +163,77 @@ export default function Profile() {
             <label>Name</label>
             <input value={form.full_name} onChange={set('full_name')} required />
           </div>
+
           <div className="field">
             <label>Phone number</label>
-            <input value={form.phone} onChange={set('phone')} type="tel" placeholder="(647) 555-0123" />
+            <input value={form.phone} onChange={set('phone')} type="tel" placeholder="Optional" />
+            <p className="muted tiny" style={{ marginTop: 5 }}>The club can see this.</p>
           </div>
-          <div className="field">
-            <label>Email</label>
-            <input value={form.email} onChange={set('email')} type="email" />
-          </div>
+
           <div className="field">
             <label>About me</label>
             <textarea
               value={form.bio}
               onChange={set('bio')}
-              placeholder="Fantasy girlie. Will cry at chapter 30."
+              placeholder="A line or two about you and what you like reading."
               style={{ minHeight: 70 }}
             />
           </div>
-          <button className="btn-primary btn-block" disabled={busy}>
+
+          <Section icon="star">My favourites</Section>
+
+          <div className="field">
+            <label>Favourite book or series</label>
+            <input value={form.fav_book} onChange={set('fav_book')} placeholder="The one you push on everyone" />
+          </div>
+          <div className="field">
+            <label>Favourite author</label>
+            <input value={form.fav_author} onChange={set('fav_author')} />
+          </div>
+          <div className="field">
+            <label>Favourite genre</label>
+            <input value={form.fav_genre} onChange={set('fav_genre')} placeholder="Romantasy, literary, horror…" />
+          </div>
+
+          <Section icon="calendar">My birthday</Section>
+          <p className="muted tiny" style={{ marginTop: -4 }}>
+            Month and day only — no year, so nobody knows your age. It shows up on the club calendar.
+          </p>
+
+          <div className="grid-2" style={{ marginTop: 10 }}>
+            <div className="field">
+              <label>Month</label>
+              <select value={form.birth_month} onChange={set('birth_month')}>
+                <option value="">—</option>
+                {MONTHS.map((m, i) => (
+                  <option key={m} value={i + 1}>{m}</option>
+                ))}
+              </select>
+            </div>
+            <div className="field">
+              <label>Day</label>
+              <select value={form.birth_day} onChange={set('birth_day')} disabled={!form.birth_month}>
+                <option value="">—</option>
+                {Array.from({ length: maxDay }, (_, i) => i + 1).map((d) => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <button className="btn-primary btn-block" disabled={busy} style={{ marginTop: 6 }}>
             {busy ? 'Saving…' : 'Save changes'}
           </button>
         </form>
+      </div>
+
+      <Section icon="lock">My email</Section>
+      <div className="card card-tight">
+        <b style={{ fontSize: '0.95rem' }}>{user?.email}</b>
+        <div className="private-note" style={{ marginTop: 10 }}>
+          <Icon name="lock" size={16} />
+          Only you can see this. It isn't stored in the club's records at all.
+        </div>
       </div>
 
       <Section icon="sparkle">My stats</Section>
@@ -161,8 +244,12 @@ export default function Profile() {
       </div>
 
       <div className="stack" style={{ marginTop: 22 }}>
-        <Link to="/members" className="btn btn-soft btn-block"><Icon name="users" size={16} /> See all members</Link>
-        <button className="btn-ghost" onClick={signOut}><Icon name="exit" size={16} /> Sign out</button>
+        <Link to="/members" className="btn btn-soft btn-block">
+          <Icon name="users" size={16} /> See all members
+        </Link>
+        <button className="btn-ghost" onClick={signOut}>
+          <Icon name="exit" size={16} /> Sign out
+        </button>
       </div>
     </div>
   )
