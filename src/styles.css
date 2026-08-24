@@ -99,12 +99,18 @@ a { color: var(--pink-600); }
   max-width: 760px;
   margin: 0 auto;
   padding: 18px 16px 40px;
-  animation: rise 0.4s var(--bounce) both;
+
+  /* NOTE: this animation deliberately touches opacity only.
+     An animated `transform` — even one that ends at `none` — makes this
+     element a containing block for any `position: fixed` descendant, which
+     traps modal sheets and toasts inside the 760px column instead of
+     letting them cover the screen. Don't add transform back here. */
+  animation: fadein 0.35s ease both;
 }
 
-@keyframes rise {
-  from { opacity: 0; transform: translateY(12px) scale(0.99); }
-  to   { opacity: 1; transform: none; }
+@keyframes fadein {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 .stack     { display: flex; flex-direction: column; gap: 14px; }

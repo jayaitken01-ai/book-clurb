@@ -16,15 +16,49 @@ export default function Meetings({ userId, currentBook }) {
   const [editing, setEditing] = useState(null)
   const [toast, showToast] = useToast()
 
+  const [loadError, setLoadError] = useState(null)
+
   const load = useCallback(async () => {
     const since = new Date(Date.now() - 4 * 3600 * 1000).toISOString()
-    const { data } = await supabase
+
+    // Fetched as three plain queries rather than one nested join. Nested
+    // embeds fail as a whole if any single relationship can't be resolved,
+    // and that failure looks exactly like "there are no meetings".
+    const { data: rows, error } = await supabase
       .from('meetings')
-      .select('*, profiles(*), meeting_rsvps(*, profiles(*))')
+      .select('*')
       .gte('starts_at', since)
       .order('starts_at', { ascending: true })
       .limit(5)
-    setMeetings(data ?? [])
+
+    if (error) {
+      setLoadError(error.message)
+      setMeetings([])
+      return
+    }
+    setLoadError(null)
+
+    if (!rows?.length) {
+      setMeetings([])
+      return
+    }
+
+    const [{ data: people }, { data: rsvps }] = await Promise.all([
+      supabase.from('profiles').select('*'),
+      supabase.from('meeting_rsvps').select('*').in('meeting_id', rows.map((r) => r.id)),
+    ])
+
+    const byId = Object.fromEntries((people ?? []).map((p) => [p.id, p]))
+
+    setMeetings(
+      rows.map((m) => ({
+        ...m,
+        profiles: byId[m.created_by] ?? null,
+        meeting_rsvps: (rsvps ?? [])
+          .filter((r) => r.meeting_id === m.id)
+          .map((r) => ({ ...r, profiles: byId[r.user_id] ?? null })),
+      }))
+    )
   }, [])
 
   useEffect(() => { load() }, [load])
@@ -52,6 +86,16 @@ export default function Meetings({ userId, currentBook }) {
           <Icon name="plus" size={14} /> Add
         </button>
       </div>
+
+      {loadError && (
+        <div className="error-box">
+          Couldn’t load meetings: {loadError}
+          <br />
+          <span style={{ fontWeight: 600 }}>
+            If this says the table is missing, re-run <code>schema.sql</code> in Supabase.
+          </span>
+        </div>
+      )}
 
       {meetings.length === 0 ? (
         <div className="no-meeting">
@@ -253,6 +297,15 @@ function MeetingForm({ userId, currentBook, existing, onClose, onSaved }) {
 
   async function save() {
     if (!form.when) return setError('When is it?')
+
+    // A meeting more than four hours old never appears on the board, so
+    // saving one would look like it silently vanished. Say so instead.
+    const when = new Date(form.when)
+    if (Number.isNaN(when.getTime())) return setError('That date didn’t make sense — try again.')
+    if (when.getTime() < Date.now() - 4 * 3600 * 1000) {
+      return setError('That’s in the past. The board only shows meetings up to four hours after they start.')
+    }
+
     setBusy(true)
     setError(null)
 
@@ -260,7 +313,7 @@ function MeetingForm({ userId, currentBook, existing, onClose, onSaved }) {
       title: form.title.trim() || 'Book club',
       location: form.location.trim() || null,
       agenda: form.agenda.trim() || null,
-      starts_at: new Date(form.when).toISOString(),
+      starts_at: when.toISOString(),
     }
 
     const { error } = existing

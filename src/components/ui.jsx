@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import Icon from './Icon.jsx'
 
 /* ---------- Avatar ---------- */
@@ -92,8 +93,12 @@ export function Modal({ title, onClose, children }) {
     }
   }, [onClose])
 
-  return (
-    <div className="modal-back" onClick={onClose}>
+  // Rendered straight into <body> rather than wherever it was written.
+  // A modal nested inside a page section can get trapped by any ancestor
+  // with a transform, filter or animation — this puts it out of reach of
+  // all of that, so the sheet always covers the whole screen.
+  return createPortal(
+    <div className="modal-back" onClick={onClose} role="dialog" aria-modal="true">
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         {/* Header stays put; only the body below it scrolls, so the title
             and close button can never end up off the top of the screen. */}
@@ -108,7 +113,8 @@ export function Modal({ title, onClose, children }) {
         </div>
         <div className="modal-body">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 
@@ -146,7 +152,9 @@ export function useToast() {
     const t = setTimeout(() => setMsg(null), 2600)
     return () => clearTimeout(t)
   }, [msg])
-  const node = msg ? <div className="toast">{msg}</div> : null
+  // Portalled for the same reason as the modal — a fixed-position toast
+  // nested inside the page column ends up centred on the column, not the screen.
+  const node = msg ? createPortal(<div className="toast">{msg}</div>, document.body) : null
   return [node, setMsg]
 }
 
