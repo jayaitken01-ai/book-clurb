@@ -140,6 +140,53 @@ export function Modal({ title, onClose, children }) {
   )
 }
 
+/* ---------- Confirm before deleting ----------
+   Deleting used to happen the instant you tapped the bin. Anything
+   that can't be undone now asks first. */
+export function Confirm({ title, body, confirmLabel = 'Delete', onCancel, onConfirm }) {
+  const [busy, setBusy] = useState(false)
+
+  async function go() {
+    setBusy(true)
+    await onConfirm()
+    setBusy(false)
+  }
+
+  return (
+    <Modal title={title} onClose={onCancel}>
+      <p style={{ fontSize: '0.94rem' }}>{body}</p>
+      <div className="row" style={{ gap: 8, marginTop: 6 }}>
+        <button className="btn-soft" style={{ flex: 1 }} onClick={onCancel} disabled={busy}>
+          Keep it
+        </button>
+        <button className="btn-danger" style={{ flex: 1 }} onClick={go} disabled={busy}>
+          {busy ? 'Deleting…' : confirmLabel}
+        </button>
+      </div>
+    </Modal>
+  )
+}
+
+/** Handy pair: `const [confirmNode, askToDelete] = useConfirm()` */
+export function useConfirm() {
+  const [ask, setAsk] = useState(null)
+
+  const node = ask ? (
+    <Confirm
+      title={ask.title}
+      body={ask.body}
+      confirmLabel={ask.confirmLabel}
+      onCancel={() => setAsk(null)}
+      onConfirm={async () => {
+        await ask.run()
+        setAsk(null)
+      }}
+    />
+  ) : null
+
+  return [node, setAsk]
+}
+
 /* ---------- Empty state ---------- */
 export function Empty({ icon = 'sparkle', title, hint }) {
   return (

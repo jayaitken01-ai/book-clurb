@@ -340,6 +340,7 @@ create table polls (
   vote_hours    int not null default 48 check (vote_hours in (24, 48)),
   vote_until    timestamptz,
   winner_option_id uuid,
+  closed_at     timestamptz,   -- results sit on the homepage for 48h after this
   created_at    timestamptz not null default now()
 );
 
@@ -435,7 +436,9 @@ begin
        and (win_id is null or o.id <> win_id);
 
     update polls
-       set phase = 'closed', winner_option_id = win_id
+       set phase            = 'closed',
+           winner_option_id = win_id,
+           closed_at        = now()
      where id = p.id;
   end loop;
 end;
@@ -543,6 +546,7 @@ create policy "own thread delete"    on theory_threads for delete to authenticat
 
 create policy "members read replies" on thread_replies for select to authenticated using (true);
 create policy "own reply insert"     on thread_replies for insert to authenticated with check (auth.uid() = user_id);
+create policy "own reply update"     on thread_replies for update to authenticated using (auth.uid() = user_id);
 create policy "own reply delete"     on thread_replies for delete to authenticated using (auth.uid() = user_id);
 
 create policy "members read thread likes" on thread_likes for select to authenticated using (true);

@@ -44,6 +44,7 @@ const PATHS = {
   hourglass: <><path d="M7 4h10M7 20h10"/><path d="M7.6 4c0 4 4.4 5.4 4.4 8s-4.4 4-4.4 8"/><path d="M16.4 4c0 4-4.4 5.4-4.4 8s4.4 4 4.4 8"/></>,
   calendar:  <><rect x="3.6" y="5.4" width="16.8" height="15" rx="2.4"/><path d="M3.6 10.2h16.8"/><path d="M8.2 3.4v3.6M15.8 3.4v3.6"/></>,
   cross:     <><path d="M6.6 6.6 17.4 17.4M17.4 6.6 6.6 17.4"/></>,
+  find:      <><circle cx="10.8" cy="10.8" r="6.4"/><path d="m15.6 15.6 4.6 4.6"/></>,
 }
 
 export default function Icon({ name, size = 20, filled = false, style, ...rest }) {

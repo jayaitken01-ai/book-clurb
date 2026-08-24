@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
-import { Avatar, Modal, Spinner, useToast } from './ui.jsx'
+import { Avatar, AvatarLink, Modal, NameLink, Spinner, useConfirm, useToast } from './ui.jsx'
 import Icon from './Icon.jsx'
 
 /**
@@ -141,6 +141,7 @@ export default function Meetings({ userId, currentBook }) {
 /* ---------------- one meeting ---------------- */
 function MeetingCard({ meeting, userId, onChange, onEdit, notify }) {
   const [busy, setBusy] = useState(false)
+  const [confirmNode, askDelete] = useConfirm()
 
   const rsvps = meeting.meeting_rsvps ?? []
   const going = rsvps.filter((r) => r.response === 'going')
@@ -176,16 +177,22 @@ function MeetingCard({ meeting, userId, onChange, onEdit, notify }) {
     onChange()
   }
 
-  async function remove() {
-    setBusy(true)
-    await supabase.from('meetings').delete().eq('id', meeting.id)
-    setBusy(false)
-    onChange()
-    notify('Meeting removed')
+  function confirmRemove() {
+    askDelete({
+      title: 'Remove this meeting?',
+      body: `\u201c${meeting.title}\u201d and everyone\u2019s answers will be removed from the board. This can\u2019t be undone.`,
+      confirmLabel: 'Remove',
+      run: async () => {
+        await supabase.from('meetings').delete().eq('id', meeting.id)
+        onChange()
+        notify('Meeting removed')
+      },
+    })
   }
 
   return (
     <div className="card meeting">
+      {confirmNode}
       <div className="row" style={{ alignItems: 'flex-start', gap: 14 }}>
         <div className="datechip">
           <span className="mon">{when.toLocaleDateString(undefined, { month: 'short' })}</span>
@@ -246,7 +253,7 @@ function MeetingCard({ meeting, userId, onChange, onEdit, notify }) {
               <span className="faces">
                 {going.map((r) => (
                   <span key={r.user_id} title={r.profiles?.full_name}>
-                    <Avatar profile={r.profiles} size={24} />
+                    <AvatarLink profile={r.profiles} size={24} />
                   </span>
                 ))}
               </span>
@@ -265,7 +272,7 @@ function MeetingCard({ meeting, userId, onChange, onEdit, notify }) {
           <button className="btn-ghost btn-sm" onClick={onEdit}>
             <Icon name="pencil" size={14} /> Edit
           </button>
-          <button className="btn-ghost btn-sm" onClick={remove} disabled={busy}>
+          <button className="btn-ghost btn-sm" onClick={confirmRemove} disabled={busy}>
             <Icon name="trash" size={14} /> Remove
           </button>
         </div>

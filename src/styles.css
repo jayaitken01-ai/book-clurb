@@ -393,6 +393,31 @@ textarea { resize: vertical; min-height: 88px; line-height: 1.5; }
 }
 .option .inner { position: relative; z-index: 1; display: flex; align-items: center; gap: 10px; }
 
+/* ---------------- search ---------------- */
+.searchbar {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: #fff;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  padding: 4px 6px 4px 15px;
+  transition: border 0.15s, box-shadow 0.15s;
+}
+.searchbar:focus-within {
+  border-color: var(--pink-400);
+  box-shadow: 0 0 0 4px var(--pink-100);
+}
+.searchbar .icon { color: var(--pink-400); }
+.searchbar input {
+  border: none;
+  background: none;
+  padding: 9px 0;
+  flex: 1;
+  min-width: 0;
+}
+.searchbar input:focus { outline: none; box-shadow: none; }
+
 /* ---------------- people ---------------- */
 .person { display: inline-flex; border-radius: 50%; text-decoration: none; }
 .person:hover .avatar { box-shadow: 0 0 0 3px var(--pink-200); }

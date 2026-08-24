@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
-import { Avatar, AvatarLink, Empty, LikeButton, Modal, NameLink, Spinner, timeAgo } from './ui.jsx'
+import { Avatar, AvatarLink, Empty, LikeButton, Modal, NameLink, Spinner, timeAgo, useConfirm } from './ui.jsx'
 import Icon from './Icon.jsx'
 
 const EMOJI_CHOICES = ['💭', '🔮', '👥', '💬', '💔', '🔥', '🕵️', '👑', '🌙', '⚔️', '🎭', '📌']
@@ -77,6 +77,8 @@ export default function TheoryBoard({ book, userId }) {
             <Thread
               key={t.id}
               thread={t}
+              book={book}
+              categories={categories}
               category={categories.find((c) => c.id === t.category_id)}
               myChapter={myChapter}
               userId={userId}
@@ -111,12 +113,14 @@ export default function TheoryBoard({ book, userId }) {
 }
 
 /* ---------------- one thread ---------------- */
-function Thread({ thread, category, myChapter, userId, onChange }) {
+function Thread({ thread, book, categories, category, myChapter, userId, onChange }) {
   const isSpoiler = thread.chapter_marker > myChapter
   const [revealed, setRevealed] = useState(!isSpoiler)
   const [open, setOpen] = useState(false)
   const [reply, setReply] = useState('')
   const [busy, setBusy] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [confirmNode, askDelete] = useConfirm()
 
   const likes = thread.thread_likes ?? []
   const liked = likes.some((l) => l.user_id === userId)
@@ -147,13 +151,20 @@ function Thread({ thread, category, myChapter, userId, onChange }) {
     onChange()
   }
 
-  async function remove() {
-    await supabase.from('theory_threads').delete().eq('id', thread.id)
-    onChange()
+  function confirmRemove() {
+    askDelete({
+      title: 'Delete this thread?',
+      body: `\u201c${thread.title}\u201d and all ${replies.length} of its replies will be removed. This can\u2019t be undone.`,
+      run: async () => {
+        await supabase.from('theory_threads').delete().eq('id', thread.id)
+        onChange()
+      },
+    })
   }
 
   return (
     <div className="card">
+      {confirmNode}
       <div className="row" style={{ gap: 11, marginBottom: 10 }}>
         <AvatarLink profile={thread.profiles} size={38} />
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -187,9 +198,14 @@ function Thread({ thread, category, myChapter, userId, onChange }) {
         <span className="spacer" />
         {thread.chapter_marker > 0 && <span className="pill pill-gold">ch. {thread.chapter_marker}+</span>}
         {thread.user_id === userId && (
-          <button className="btn-ghost btn-sm" onClick={remove} aria-label="Delete thread">
-            <Icon name="trash" size={15} />
-          </button>
+          <>
+            <button className="btn-ghost btn-sm" onClick={() => setEditing(true)} aria-label="Edit thread">
+              <Icon name="pencil" size={15} />
+            </button>
+            <button className="btn-ghost btn-sm" onClick={confirmRemove} aria-label="Delete thread">
+              <Icon name="trash" size={15} />
+            </button>
+          </>
         )}
       </div>
 
@@ -198,16 +214,7 @@ function Thread({ thread, category, myChapter, userId, onChange }) {
           <hr className="divider" />
           <div className="stack" style={{ gap: 11 }}>
             {replies.map((r) => (
-              <div className="row" key={r.id} style={{ alignItems: 'flex-start', gap: 9 }}>
-                <AvatarLink profile={r.profiles} size={28} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <span className="tiny">
-                    <NameLink profile={r.profiles} />{' '}
-                    <span className="muted">{timeAgo(r.created_at)}</span>
-                  </span>
-                  <p style={{ margin: '2px 0 0', fontSize: '0.88rem', lineHeight: 1.5 }}>{r.body}</p>
-                </div>
-              </div>
+              <Reply key={r.id} reply={r} userId={userId} onChange={onChange} />
             ))}
             <div className="row" style={{ gap: 7 }}>
               <input
@@ -221,7 +228,152 @@ function Thread({ thread, category, myChapter, userId, onChange }) {
           </div>
         </>
       )}
+
+      {editing && (
+        <EditThread
+          thread={thread}
+          book={book}
+          categories={categories}
+          onClose={() => setEditing(false)}
+          onSaved={() => { setEditing(false); onChange() }}
+        />
+      )}
     </div>
+  )
+}
+
+/* ---------------- one reply, editable by whoever wrote it ---------------- */
+function Reply({ reply, userId, onChange }) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(reply.body)
+  const [busy, setBusy] = useState(false)
+  const [confirmNode, askDelete] = useConfirm()
+
+  async function save() {
+    if (!draft.trim()) return
+    setBusy(true)
+    await supabase.from('thread_replies').update({ body: draft.trim() }).eq('id', reply.id)
+    setBusy(false)
+    setEditing(false)
+    onChange()
+  }
+
+  function confirmRemove() {
+    askDelete({
+      title: 'Delete this reply?',
+      body: 'Your reply will be removed from the thread. This can\u2019t be undone.',
+      run: async () => {
+        await supabase.from('thread_replies').delete().eq('id', reply.id)
+        onChange()
+      },
+    })
+  }
+
+  return (
+    <div className="row" style={{ alignItems: 'flex-start', gap: 9 }}>
+      {confirmNode}
+      <AvatarLink profile={reply.profiles} size={28} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <span className="tiny">
+          <NameLink profile={reply.profiles} />{' '}
+          <span className="muted">{timeAgo(reply.created_at)}</span>
+        </span>
+
+        {editing ? (
+          <div className="row" style={{ gap: 7, marginTop: 5 }}>
+            <input
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && save()}
+              autoFocus
+            />
+            <button className="btn-primary btn-sm" onClick={save} disabled={busy}>Save</button>
+            <button className="btn-ghost btn-sm" onClick={() => { setDraft(reply.body); setEditing(false) }}>
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <>
+            <p style={{ margin: '2px 0 0', fontSize: '0.88rem', lineHeight: 1.5 }}>{reply.body}</p>
+            {reply.user_id === userId && (
+              <div className="row" style={{ gap: 2, marginTop: 3 }}>
+                <button className="btn-ghost btn-sm" style={{ padding: '3px 8px' }} onClick={() => setEditing(true)}>
+                  <Icon name="pencil" size={13} />
+                </button>
+                <button className="btn-ghost btn-sm" style={{ padding: '3px 8px' }} onClick={confirmRemove}>
+                  <Icon name="trash" size={13} />
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/* ---------------- edit a thread you started ---------------- */
+function EditThread({ thread, book, categories, onClose, onSaved }) {
+  const [title, setTitle] = useState(thread.title)
+  const [body, setBody] = useState(thread.body)
+  const [categoryId, setCategoryId] = useState(thread.category_id ?? '')
+  const [chapter, setChapter] = useState(thread.chapter_marker ?? 0)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState(null)
+
+  async function save() {
+    if (!title.trim() || !body.trim()) return setError('Add a title and your thoughts.')
+    setBusy(true)
+    setError(null)
+    const { error } = await supabase
+      .from('theory_threads')
+      .update({
+        title: title.trim(),
+        body: body.trim(),
+        category_id: categoryId || null,
+        chapter_marker: Number(chapter) || 0,
+      })
+      .eq('id', thread.id)
+    setBusy(false)
+    if (error) return setError(error.message)
+    onSaved()
+  }
+
+  return (
+    <Modal title="Edit thread" onClose={onClose}>
+      {error && <div className="error-box">{error}</div>}
+
+      <div className="field">
+        <label>Category</label>
+        <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+          {categories.map((c) => (
+            <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>
+          ))}
+        </select>
+      </div>
+      <div className="field">
+        <label>Title</label>
+        <input value={title} onChange={(e) => setTitle(e.target.value)} />
+      </div>
+      <div className="field">
+        <label>Your thoughts</label>
+        <textarea value={body} onChange={(e) => setBody(e.target.value)} style={{ minHeight: 130 }} />
+      </div>
+      <div className="field">
+        <label>Spoilers up to chapter</label>
+        <input
+          type="number"
+          min={0}
+          max={book.total_chapters}
+          value={chapter}
+          onChange={(e) => setChapter(e.target.value)}
+        />
+      </div>
+
+      <button className="btn-primary btn-block" onClick={save} disabled={busy}>
+        {busy ? 'Saving…' : 'Save changes'}
+      </button>
+    </Modal>
   )
 }
 

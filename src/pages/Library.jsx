@@ -1,10 +1,16 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase.js'
 import { useAuth } from '../lib/AuthContext.jsx'
 import { Cover, Empty, Modal, Section, Spinner, Stars, useToast } from '../components/ui.jsx'
 import Icon from '../components/Icon.jsx'
 import GenrePicker from '../components/GenrePicker.jsx'
+
+const SHELVES = [
+  { key: 'current',  title: 'Reading now', icon: 'bookopen' },
+  { key: 'upcoming', title: 'Up next',     icon: 'bookmark' },
+  { key: 'finished', title: 'Finished',    icon: 'check' },
+]
 
 export default function Library() {
   const { user } = useAuth()
@@ -14,6 +20,9 @@ export default function Library() {
 
   const [books, setBooks] = useState(null)
   const [adding, setAdding] = useState(false)
+  const [search, setSearch] = useState('')
+  const [genre, setGenre] = useState('all')
+  const [groupBy, setGroupBy] = useState('shelf')   // 'shelf' | 'genre'
   const [toast, showToast] = useToast()
 
   const load = useCallback(async () => {
@@ -26,20 +35,65 @@ export default function Library() {
 
   useEffect(() => { load() }, [load])
 
+  // Books in the current view, after the search box and genre filter.
+  const shown = useMemo(() => {
+    if (!books) return []
+    const q = search.trim().toLowerCase()
+
+    return books
+      .filter((b) => (view === 'tbr' ? b.status === 'tbr' : b.status !== 'tbr'))
+      .filter((b) => genre === 'all' || (b.genres ?? []).includes(genre))
+      .filter((b) => {
+        if (!q) return true
+        return (
+          b.title?.toLowerCase().includes(q) ||
+          b.author?.toLowerCase().includes(q) ||
+          (b.genres ?? []).some((g) => g.toLowerCase().includes(q))
+        )
+      })
+  }, [books, view, search, genre])
+
+  // Every genre actually in use, so the filter never offers an empty one.
+  const genresInUse = useMemo(() => {
+    if (!books) return []
+    const pool = books.filter((b) => (view === 'tbr' ? b.status === 'tbr' : b.status !== 'tbr'))
+    return [...new Set(pool.flatMap((b) => b.genres ?? []))].sort()
+  }, [books, view])
+
   if (!books) return <Spinner />
 
-  const current  = books.filter((b) => b.status === 'current')
-  const upcoming = books.filter((b) => b.status === 'upcoming')
-  const finished = books.filter((b) => b.status === 'finished')
-  const tbr      = books.filter((b) => b.status === 'tbr')
-  const onShelf  = books.filter((b) => b.status !== 'tbr')
-
+  const tbrCount = books.filter((b) => b.status === 'tbr').length
+  const finished = books.filter((b) => b.status === 'finished').length
+  const onShelf  = books.filter((b) => b.status !== 'tbr').length
   const allRatings = books.flatMap((b) => b.ratings ?? [])
   const avgAll = allRatings.length
     ? (allRatings.reduce((s, r) => s + r.rating, 0) / allRatings.length).toFixed(1)
     : '—'
 
   const open = (b) => navigate(`/book/${b.id}`)
+  const filtering = Boolean(search.trim()) || genre !== 'all'
+
+  // How the results get grouped up.
+  let groups = []
+  if (groupBy === 'genre') {
+    const byGenre = {}
+    shown.forEach((b) => {
+      const list = (b.genres ?? []).length ? b.genres : ['No genre yet']
+      list.forEach((g) => {
+        byGenre[g] = byGenre[g] ?? []
+        byGenre[g].push(b)
+      })
+    })
+    groups = Object.keys(byGenre).sort((a, b) =>
+      a === 'No genre yet' ? 1 : b === 'No genre yet' ? -1 : a.localeCompare(b)
+    ).map((g) => ({ title: g, icon: 'tag', books: byGenre[g] }))
+  } else if (view === 'tbr') {
+    groups = [{ title: null, books: shown }]
+  } else {
+    groups = SHELVES
+      .map((s) => ({ ...s, books: shown.filter((b) => b.status === s.key) }))
+      .filter((s) => s.books.length)
+  }
 
   return (
     <div className="page">
@@ -54,59 +108,110 @@ export default function Library() {
       <div className="subtabs">
         <button
           className={`subtab${view === 'shelf' ? ' on' : ''}`}
-          onClick={() => setParams({}, { replace: true })}
+          onClick={() => { setParams({}, { replace: true }); setGenre('all') }}
         >
           Our shelf
         </button>
         <button
           className={`subtab${view === 'tbr' ? ' on' : ''}`}
-          onClick={() => setParams({ view: 'tbr' }, { replace: true })}
+          onClick={() => { setParams({ view: 'tbr' }, { replace: true }); setGenre('all') }}
         >
-          TBR {tbr.length > 0 && `· ${tbr.length}`}
+          TBR {tbrCount > 0 && `· ${tbrCount}`}
         </button>
       </div>
 
-      {view === 'shelf' ? (
-        <>
-          <div className="grid-3" style={{ marginBottom: 6 }}>
-            <div className="stat"><b>{finished.length}</b><span>books finished</span></div>
-            <div className="stat"><b>{onShelf.length}</b><span>on the shelf</span></div>
-            <div className="stat"><b>{avgAll}</b><span>avg rating</span></div>
-          </div>
+      {/* ---------- search ---------- */}
+      <div className="searchbar">
+        <Icon name="find" size={17} />
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by title, author or genre…"
+          aria-label="Search the library"
+        />
+        {search && (
+          <button className="btn-ghost btn-sm" onClick={() => setSearch('')} aria-label="Clear search">
+            <Icon name="cross" size={15} />
+          </button>
+        )}
+      </div>
 
-          {onShelf.length === 0 && (
-            <Empty
-              icon="books"
-              title="The shelf is empty"
-              hint="Add your first book to get the club going!"
-            />
-          )}
+      {/* ---------- genre filter ---------- */}
+      {genresInUse.length > 0 && (
+        <div className="cats" style={{ marginTop: 12 }}>
+          <button className={`cat${genre === 'all' ? ' on' : ''}`} onClick={() => setGenre('all')}>
+            All genres
+          </button>
+          {genresInUse.map((g) => (
+            <button key={g} className={`cat${genre === g ? ' on' : ''}`} onClick={() => setGenre(g)}>
+              {g}
+            </button>
+          ))}
+        </div>
+      )}
 
-          <Shelf title="Reading now" icon="bookopen" books={current}  onOpen={open} />
-          <Shelf title="Up next"     icon="bookmark" books={upcoming} onOpen={open} />
-          <Shelf title="Finished"    icon="check"    books={finished} onOpen={open} />
-        </>
+      {/* ---------- how to group ---------- */}
+      {genresInUse.length > 0 && (
+        <div className="between" style={{ margin: '2px 0 4px' }}>
+          <span className="tiny muted" style={{ fontWeight: 800 }}>
+            {shown.length} {shown.length === 1 ? 'book' : 'books'}
+            {filtering && ' found'}
+          </span>
+          <button
+            className="btn-ghost btn-sm"
+            onClick={() => setGroupBy((g) => (g === 'shelf' ? 'genre' : 'shelf'))}
+          >
+            <Icon name="sliders" size={14} />
+            {groupBy === 'shelf' ? 'Group by genre' : 'Group by shelf'}
+          </button>
+        </div>
+      )}
+
+      {/* ---------- stats (only when you're not filtering) ---------- */}
+      {view === 'shelf' && !filtering && (
+        <div className="grid-3" style={{ marginBottom: 6 }}>
+          <div className="stat"><b>{finished}</b><span>books finished</span></div>
+          <div className="stat"><b>{onShelf}</b><span>on the shelf</span></div>
+          <div className="stat"><b>{avgAll}</b><span>avg rating</span></div>
+        </div>
+      )}
+
+      {view === 'tbr' && !filtering && tbrCount > 0 && (
+        <div className="waiting" style={{ marginBottom: 16 }}>
+          Any of these can be suggested again next time a poll opens.
+        </div>
+      )}
+
+      {/* ---------- the books ---------- */}
+      {shown.length === 0 ? (
+        filtering ? (
+          <Empty
+            icon="find"
+            title="Nothing matches"
+            hint="Try a different word, or clear the genre filter."
+          />
+        ) : view === 'tbr' ? (
+          <Empty
+            icon="bookmark"
+            title="Nothing on the TBR yet"
+            hint="Suggestions that don't win a poll land here, ready for the next one."
+          />
+        ) : (
+          <Empty
+            icon="books"
+            title="The shelf is empty"
+            hint="Add your first book to get the club going!"
+          />
+        )
       ) : (
-        <>
-          <p className="hand">books we've suggested but haven't read yet</p>
-
-          {tbr.length === 0 ? (
-            <Empty
-              icon="bookmark"
-              title="Nothing on the TBR yet"
-              hint="Suggestions that don't win a poll land here, ready for the next one."
-            />
-          ) : (
-            <>
-              <div className="waiting" style={{ marginBottom: 16 }}>
-                Any of these can be suggested again next time a poll opens.
-              </div>
-              <div className="shelf">
-                {tbr.map((b) => <BookTile key={b.id} book={b} onOpen={open} />)}
-              </div>
-            </>
-          )}
-        </>
+        groups.map((g) => (
+          <div key={g.title ?? 'all'}>
+            {g.title && <Section icon={g.icon} note={`${g.books.length}`}>{g.title}</Section>}
+            <div className="shelf">
+              {g.books.map((b) => <BookTile key={`${g.title}-${b.id}`} book={b} onOpen={open} />)}
+            </div>
+          </div>
+        ))
       )}
 
       {adding && (
@@ -117,18 +222,6 @@ export default function Library() {
         />
       )}
     </div>
-  )
-}
-
-function Shelf({ title, icon, books, onOpen }) {
-  if (!books.length) return null
-  return (
-    <>
-      <Section icon={icon} note={`${books.length}`}>{title}</Section>
-      <div className="shelf">
-        {books.map((b) => <BookTile key={b.id} book={b} onOpen={onOpen} />)}
-      </div>
-    </>
   )
 }
 

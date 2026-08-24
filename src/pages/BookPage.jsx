@@ -3,7 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase.js'
 import { useAuth } from '../lib/AuthContext.jsx'
 import {
-  Avatar, AvatarLink, Cover, Empty, Modal, NameLink, RecommendPill, Section, Spinner, Stars, timeAgo, useToast,
+  Avatar, AvatarLink, Cover, Empty, Modal, NameLink, RecommendPill, Section, Spinner, Stars, timeAgo, useConfirm, useToast,
 } from '../components/ui.jsx'
 import Icon from '../components/Icon.jsx'
 import TheoryBoard from '../components/TheoryBoard.jsx'
@@ -276,6 +276,7 @@ const BLANK = {
 }
 
 function ReviewForm({ book, userId, existing, onClose, onSaved }) {
+  const [confirmNode, askDelete] = useConfirm()
   const [form, setForm] = useState(() => ({
     ...BLANK,
     ...Object.fromEntries(Object.keys(BLANK).map((k) => [k, existing?.[k] ?? BLANK[k]])),
@@ -310,13 +311,20 @@ function ReviewForm({ book, userId, existing, onClose, onSaved }) {
     onSaved()
   }
 
-  async function remove() {
-    await supabase.from('ratings').delete().eq('book_id', book.id).eq('user_id', userId)
-    onSaved()
+  function confirmRemove() {
+    askDelete({
+      title: 'Delete my review?',
+      body: 'Your rating and everything you wrote about this book will be removed, and the club average will change. This can\u2019t be undone.',
+      run: async () => {
+        await supabase.from('ratings').delete().eq('book_id', book.id).eq('user_id', userId)
+        onSaved()
+      },
+    })
   }
 
   return (
     <Modal title={existing ? 'Edit my review' : 'My review'} onClose={onClose}>
+      {confirmNode}
       {error && <div className="error-box">{error}</div>}
       <p className="muted" style={{ marginTop: -6 }}>
         {book.title} · only the stars are required, skip anything you don't feel like.
@@ -377,7 +385,7 @@ function ReviewForm({ book, userId, existing, onClose, onSaved }) {
       </button>
 
       {existing && (
-        <button className="btn-ghost btn-block btn-sm" onClick={remove} style={{ marginTop: 8 }}>
+        <button className="btn-ghost btn-block btn-sm" onClick={confirmRemove} style={{ marginTop: 8 }}>
           Delete my review
         </button>
       )}
@@ -390,6 +398,7 @@ function BookControls({ book, userId, onDone }) {
   const navigate = useNavigate()
   const [busy, setBusy] = useState(false)
   const [editing, setEditing] = useState(false)
+  const [confirmNode, askDelete] = useConfirm()
 
   async function setStatus(status) {
     setBusy(true)
@@ -401,14 +410,21 @@ function BookControls({ book, userId, onDone }) {
     onDone(status === 'current' ? 'Now reading!' : 'Library updated')
   }
 
-  async function remove() {
-    setBusy(true)
-    await supabase.from('books').delete().eq('id', book.id)
-    navigate('/library')
+  function confirmRemove() {
+    askDelete({
+      title: `Delete \u201c${book.title}\u201d?`,
+      body: 'This also removes its theory board, every chapter update, and everyone\u2019s reviews of it. That can\u2019t be undone \u2014 if you just want it off the shelf, move it to TBR instead.',
+      confirmLabel: 'Delete everything',
+      run: async () => {
+        await supabase.from('books').delete().eq('id', book.id)
+        navigate('/library')
+      },
+    })
   }
 
   return (
     <div className="card card-tight" style={{ marginTop: 10 }}>
+      {confirmNode}
       <p className="tiny muted" style={{ marginTop: 0 }}>
         Making this the current book files the old one under Finished. Its theory
         board and chapter updates stay exactly where they are.
@@ -421,7 +437,7 @@ function BookControls({ book, userId, onDone }) {
         {book.status !== 'finished' && <button className="btn-lilac btn-sm" onClick={() => setStatus('finished')} disabled={busy}><Icon name="check" size={15} /> Mark finished</button>}
         {book.status !== 'upcoming' && <button className="btn-ghost btn-sm" onClick={() => setStatus('upcoming')} disabled={busy}><Icon name="bookmark" size={15} /> Up next</button>}
         {book.status !== 'tbr'      && <button className="btn-ghost btn-sm" onClick={() => setStatus('tbr')}      disabled={busy}><Icon name="clock" size={15} /> Move to TBR</button>}
-        {book.added_by === userId   && <button className="btn-danger btn-sm" onClick={remove} disabled={busy}><Icon name="trash" size={15} /> Delete</button>}
+        {book.added_by === userId   && <button className="btn-danger btn-sm" onClick={confirmRemove} disabled={busy}><Icon name="trash" size={15} /> Delete</button>}
       </div>
 
       {editing && (

@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { useAuth } from '../lib/AuthContext.jsx'
 import {
-  Avatar, Countdown, Cover, Empty, Modal, Section, Spinner, timeAgo, useToast,
+  Avatar, AvatarLink, Countdown, Cover, Empty, Modal, NameLink, Section,
+  Spinner, monthYear, timeAgo, useConfirm, useToast,
 } from '../components/ui.jsx'
 import Icon from '../components/Icon.jsx'
 import GenrePicker from '../components/GenrePicker.jsx'
@@ -130,7 +131,11 @@ export default function Polls() {
 
       {done.length > 0 && (
         <>
-          <Section icon="check" note={`${done.length}`}>Past polls</Section>
+          <Section icon="books" note={`${done.length}`}>Poll archive</Section>
+          <p className="muted tiny" style={{ margin: '-6px 0 12px' }}>
+            Every poll we've ever run, newest first. Results stay on the homepage
+            for 48 hours, then land here.
+          </p>
           {done.map((p) => (
             <PollCard key={p.id} poll={p} userId={user.id} tbr={tbr} onChange={load} notify={showToast} />
           ))}
@@ -155,6 +160,8 @@ export default function Polls() {
 function PollCard({ poll, userId, tbr, onChange, notify }) {
   const [busy, setBusy] = useState(false)
   const [suggesting, setSuggesting] = useState(false)
+  const [editingPoll, setEditingPoll] = useState(false)
+  const [confirmNode, askDelete] = useConfirm()
 
   const options = poll.poll_options ?? []
   const votes = poll.poll_votes ?? []
@@ -190,11 +197,17 @@ function PollCard({ poll, userId, tbr, onChange, notify }) {
     notify('Suggestion withdrawn')
   }
 
-  async function remove() {
-    setBusy(true)
-    await supabase.from('polls').delete().eq('id', poll.id)
-    setBusy(false)
-    onChange()
+  function confirmRemove() {
+    askDelete({
+      title: 'Cancel this poll?',
+      body: `The poll and all ${options.length} ${options.length === 1 ? 'suggestion' : 'suggestions'} will be removed. Nothing goes to the TBR shelf. This can\u2019t be undone.`,
+      confirmLabel: 'Cancel poll',
+      run: async () => {
+        await supabase.from('polls').delete().eq('id', poll.id)
+        onChange()
+        notify('Poll cancelled')
+      },
+    })
   }
 
   /* ---- phase banner ---- */
@@ -218,12 +231,17 @@ function PollCard({ poll, userId, tbr, onChange, notify }) {
 
   return (
     <div className="card" style={{ marginBottom: 14 }}>
+      {confirmNode}
       <div className="between" style={{ alignItems: 'flex-start' }}>
         <div style={{ minWidth: 0 }}>
           <h3 style={{ margin: 0 }}>{poll.question}</h3>
           <div className="row tiny muted" style={{ gap: 7, marginTop: 6 }}>
-            <Avatar profile={poll.profiles} size={20} />
-            <span>started by {poll.profiles?.full_name ?? 'someone'} · {timeAgo(poll.created_at)}</span>
+            <AvatarLink profile={poll.profiles} size={20} />
+            <span>
+              started by <NameLink profile={poll.profiles} style={{ fontSize: 'inherit' }} />
+              {' · '}{timeAgo(poll.created_at)}
+              {poll.phase === 'closed' && poll.closed_at && ` · closed ${timeAgo(poll.closed_at)}`}
+            </span>
           </div>
         </div>
       </div>
@@ -250,7 +268,9 @@ function PollCard({ poll, userId, tbr, onChange, notify }) {
                     </div>
                   )}
                   <div className="tiny muted" style={{ marginTop: 5 }}>
-                    from {o.profiles?.full_name ?? 'someone'}
+                    from {o.suggested_by === userId
+                      ? 'you'
+                      : <NameLink profile={o.profiles} style={{ fontSize: 'inherit' }} />}
                   </div>
                 </div>
               </div>
@@ -333,10 +353,25 @@ function PollCard({ poll, userId, tbr, onChange, notify }) {
       {isMine && poll.phase !== 'closed' && (
         <>
           <hr className="divider" />
-          <button className="btn-danger btn-sm" onClick={remove} disabled={busy}>
-            <Icon name="trash" size={15} /> Cancel this poll
-          </button>
+          <div className="row-wrap">
+            {poll.phase === 'collecting' && (
+              <button className="btn-soft btn-sm" onClick={() => setEditingPoll(true)} disabled={busy}>
+                <Icon name="pencil" size={15} /> Edit poll
+              </button>
+            )}
+            <button className="btn-danger btn-sm" onClick={confirmRemove} disabled={busy}>
+              <Icon name="trash" size={15} /> Cancel this poll
+            </button>
+          </div>
         </>
+      )}
+
+      {editingPoll && (
+        <EditPoll
+          poll={poll}
+          onClose={() => setEditingPoll(false)}
+          onSaved={async () => { setEditingPoll(false); await onChange(); notify('Poll updated') }}
+        />
       )}
 
       {suggesting && (
@@ -349,6 +384,73 @@ function PollCard({ poll, userId, tbr, onChange, notify }) {
         />
       )}
     </div>
+  )
+}
+
+/* ============================================================
+   EDIT A POLL (creator only, while suggestions are still open)
+   ============================================================ */
+function EditPoll({ poll, onClose, onSaved }) {
+  const [question, setQuestion] = useState(poll.question)
+  const [voteHours, setVoteHours] = useState(poll.vote_hours)
+  const [extraHours, setExtraHours] = useState(0)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState(null)
+
+  async function save() {
+    setBusy(true)
+    setError(null)
+
+    const patch = {
+      question: question.trim() || 'What should we read next?',
+      vote_hours: Number(voteHours),
+    }
+    if (Number(extraHours) > 0) {
+      patch.suggest_until = new Date(
+        new Date(poll.suggest_until).getTime() + Number(extraHours) * 3600 * 1000
+      ).toISOString()
+    }
+
+    const { error } = await supabase.from('polls').update(patch).eq('id', poll.id)
+    setBusy(false)
+    if (error) return setError(error.message)
+    onSaved()
+  }
+
+  return (
+    <Modal title="Edit poll" onClose={onClose}>
+      {error && <div className="error-box">{error}</div>}
+
+      <div className="field">
+        <label>Question</label>
+        <input value={question} onChange={(e) => setQuestion(e.target.value)} />
+      </div>
+
+      <div className="field">
+        <label>Voting will run for</label>
+        <select value={voteHours} onChange={(e) => setVoteHours(e.target.value)}>
+          <option value={24}>24 hours</option>
+          <option value={48}>48 hours</option>
+        </select>
+      </div>
+
+      <div className="field">
+        <label>Give people longer to suggest?</label>
+        <select value={extraHours} onChange={(e) => setExtraHours(e.target.value)}>
+          <option value={0}>No, leave it as it is</option>
+          <option value={6}>Add 6 hours</option>
+          <option value={12}>Add 12 hours</option>
+          <option value={24}>Add another day</option>
+        </select>
+        <p className="muted tiny" style={{ marginTop: 5 }}>
+          Suggestions can only be extended, never cut short — nobody loses their chance.
+        </p>
+      </div>
+
+      <button className="btn-primary btn-block" onClick={save} disabled={busy}>
+        {busy ? 'Saving…' : 'Save changes'}
+      </button>
+    </Modal>
   )
 }
 

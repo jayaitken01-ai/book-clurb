@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { MOODS, moodOf } from '../lib/moods.js'
-import { Avatar, AvatarLink, Empty, LikeButton, Modal, NameLink, Spinner, timeAgo } from './ui.jsx'
+import { Avatar, AvatarLink, Empty, LikeButton, Modal, NameLink, Spinner, timeAgo, useConfirm } from './ui.jsx'
 import Icon from './Icon.jsx'
 
 /**
@@ -137,6 +137,8 @@ export default function ChapterFeed({ book, userId, limit, onCountChange }) {
 
 /* ---------------- one update ---------------- */
 function UpdateCard({ update, userId, onChange }) {
+  const [editing, setEditing] = useState(false)
+  const [confirmNode, askDelete] = useConfirm()
   const mood = moodOf(update.mood)
   const likes = update.chapter_update_likes ?? []
   const liked = likes.some((l) => l.user_id === userId)
@@ -151,13 +153,20 @@ function UpdateCard({ update, userId, onChange }) {
     onChange()
   }
 
-  async function remove() {
-    await supabase.from('chapter_updates').delete().eq('id', update.id)
-    onChange()
+  function confirmRemove() {
+    askDelete({
+      title: 'Delete this update?',
+      body: 'Your chapter update and its likes will be removed. This can\u2019t be undone.',
+      run: async () => {
+        await supabase.from('chapter_updates').delete().eq('id', update.id)
+        onChange()
+      },
+    })
   }
 
   return (
     <div className="card card-tight">
+      {confirmNode}
       <div className="row" style={{ gap: 11, alignItems: 'flex-start' }}>
         <AvatarLink profile={update.profiles} size={40} />
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -178,14 +187,81 @@ function UpdateCard({ update, userId, onChange }) {
             <LikeButton liked={liked} count={likes.length} onClick={toggleLike} />
             <span className="spacer" />
             {update.user_id === userId && (
-              <button className="btn-ghost btn-sm" onClick={remove} aria-label="Delete update">
-                <Icon name="trash" size={15} />
-              </button>
+              <>
+                <button className="btn-ghost btn-sm" onClick={() => setEditing(true)} aria-label="Edit update">
+                  <Icon name="pencil" size={15} />
+                </button>
+                <button className="btn-ghost btn-sm" onClick={confirmRemove} aria-label="Delete update">
+                  <Icon name="trash" size={15} />
+                </button>
+              </>
             )}
           </div>
         </div>
       </div>
+
+      {editing && (
+        <EditUpdate
+          update={update}
+          onClose={() => setEditing(false)}
+          onSaved={() => { setEditing(false); onChange() }}
+        />
+      )}
     </div>
+  )
+}
+
+/* ---------------- edit an update you already posted ---------------- */
+function EditUpdate({ update, onClose, onSaved }) {
+  const [mood, setMood] = useState(update.mood ?? null)
+  const [comment, setComment] = useState(update.comment ?? '')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState(null)
+
+  async function save() {
+    if (!mood && !comment.trim()) return setError('Pick a mood or leave a comment.')
+    setBusy(true)
+    setError(null)
+    const { error } = await supabase
+      .from('chapter_updates')
+      .update({ mood, comment: comment.trim() || null })
+      .eq('id', update.id)
+    setBusy(false)
+    if (error) return setError(error.message)
+    onSaved()
+  }
+
+  return (
+    <Modal title={`Edit chapter ${update.chapter}`} onClose={onClose}>
+      {error && <div className="error-box">{error}</div>}
+
+      <label>How did it make you feel?</label>
+      <div className="moods" style={{ marginBottom: 14 }}>
+        {MOODS.map((m) => (
+          <button
+            key={m.key}
+            type="button"
+            className={`mood${mood === m.key ? ' on' : ''}`}
+            onClick={() => setMood(mood === m.key ? null : m.key)}
+          >
+            <span className="face">{m.emoji}</span>
+            {m.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="field">
+        <label>Your comment</label>
+        <textarea value={comment} onChange={(e) => setComment(e.target.value)} maxLength={500} />
+      </div>
+
+      <button className="btn-primary btn-block" onClick={save} disabled={busy}>
+        {busy ? 'Saving…' : 'Save changes'}
+      </button>
+      <p className="tiny muted center" style={{ margin: '9px 0 0' }}>
+        The chapter number stays as it was, so nobody gets spoiled by an edit.
+      </p>
+    </Modal>
   )
 }
 

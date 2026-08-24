@@ -31,10 +31,15 @@ export default function Home() {
 
     // Separate queries on purpose — see the note in Polls.jsx. `polls` and
     // `poll_options` are linked twice, so asking for them together fails.
+    //
+    // The homepage shows a poll that's still running, or one that closed in
+    // the last 48 hours so everyone gets a chance to see the result. After
+    // that it drops off and lives in the archive on the Polls page.
+    const cutoff = new Date(Date.now() - 48 * 3600 * 1000).toISOString()
     const { data: openPolls } = await supabase
       .from('polls')
       .select('*')
-      .neq('phase', 'closed')
+      .or(`phase.neq.closed,closed_at.gte.${cutoff}`)
       .order('created_at', { ascending: false })
       .limit(1)
 
@@ -181,29 +186,37 @@ function PollPreview({ poll }) {
   const options = poll.poll_options ?? []
   const votes = poll.poll_votes ?? []
   const collecting = poll.phase === 'collecting'
+  const closed = poll.phase === 'closed'
 
   const tally = {}
   votes.forEach((v) => { tally[v.option_id] = (tally[v.option_id] ?? 0) + 1 })
   const leader = [...options].sort((a, b) => (tally[b.id] ?? 0) - (tally[a.id] ?? 0))[0]
+  const winner = options.find((o) => o.id === poll.winner_option_id)
 
   return (
     <Link to="/polls" style={{ textDecoration: 'none', color: 'inherit' }}>
       <div className="card">
         <div className="between">
           <b>{poll.question}</b>
-          <Countdown until={collecting ? poll.suggest_until : poll.vote_until} />
+          {closed
+            ? <span className="pill pill-gold"><Icon name="check" size={13} /> Result</span>
+            : <Countdown until={collecting ? poll.suggest_until : poll.vote_until} />}
         </div>
 
         <p className="muted" style={{ margin: '10px 0 0', fontSize: '0.88rem' }}>
-          {collecting
-            ? `${options.length} ${options.length === 1 ? 'suggestion' : 'suggestions'} so far — add yours before it closes`
-            : leader
-              ? <>Leading: <b>{leader.title}</b> with {tally[leader.id] ?? 0}</>
-              : 'Voting is open, nobody has voted yet'}
+          {closed
+            ? winner
+              ? <><b>{winner.title}</b> won with {tally[winner.id] ?? 0} {(tally[winner.id] ?? 0) === 1 ? 'vote' : 'votes'} — it's our current read.</>
+              : 'Closed with no votes. Everything went to the TBR shelf.'
+            : collecting
+              ? `${options.length} ${options.length === 1 ? 'suggestion' : 'suggestions'} so far — add yours before it closes`
+              : leader
+                ? <>Leading: <b>{leader.title}</b> with {tally[leader.id] ?? 0}</>
+                : 'Voting is open, nobody has voted yet'}
         </p>
 
         <p className="tiny" style={{ margin: '10px 0 0', color: 'var(--pink-600)', fontWeight: 800 }}>
-          {collecting ? 'Tap to suggest' : 'Tap to vote'}
+          {closed ? 'See the full result' : collecting ? 'Tap to suggest' : 'Tap to vote'}
         </p>
       </div>
     </Link>
