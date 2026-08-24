@@ -95,12 +95,18 @@ export function Modal({ title, onClose, children }) {
   return (
     <div className="modal-back" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="grabber" />
-        <div className="between" style={{ marginBottom: 14 }}>
-          <h2 style={{ margin: 0 }}>{title}</h2>
-          <button className="btn-ghost" onClick={onClose} aria-label="Close">✕</button>
+        {/* Header stays put; only the body below it scrolls, so the title
+            and close button can never end up off the top of the screen. */}
+        <div className="modal-head">
+          <div className="grabber" />
+          <div className="between">
+            <h2 style={{ margin: 0 }}>{title}</h2>
+            <button className="btn-ghost" onClick={onClose} aria-label="Close">
+              <Icon name="cross" size={18} />
+            </button>
+          </div>
         </div>
-        {children}
+        <div className="modal-body">{children}</div>
       </div>
     </div>
   )

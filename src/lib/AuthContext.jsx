@@ -8,17 +8,40 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  const loadProfile = useCallback(async (userId) => {
-    if (!userId) {
+  const loadProfile = useCallback(async (user) => {
+    if (!user?.id) {
       setProfile(null)
       return
     }
+
     const { data } = await supabase
       .from('profiles')
       .select('*')
-      .eq('id', userId)
+      .eq('id', user.id)
       .maybeSingle()
-    setProfile(data ?? null)
+
+    if (data) {
+      setProfile(data)
+      return
+    }
+
+    // Signed in, but no profile row. That happens if the database was
+    // rebuilt after this account was created — the sign-up trigger only
+    // fires for new accounts. Rather than leaving them stuck on a blank
+    // app, put the profile back from what Supabase already knows.
+    const meta = user.user_metadata ?? {}
+    const { data: created } = await supabase
+      .from('profiles')
+      .insert({
+        id: user.id,
+        full_name: meta.full_name || user.email?.split('@')[0] || 'New member',
+        email: user.email ?? null,
+        phone: meta.phone ?? null,
+      })
+      .select()
+      .maybeSingle()
+
+    setProfile(created ?? null)
   }, [])
 
   useEffect(() => {
@@ -27,14 +50,14 @@ export function AuthProvider({ children }) {
     supabase.auth.getSession().then(async ({ data }) => {
       if (!alive) return
       setSession(data.session)
-      await loadProfile(data.session?.user?.id)
+      await loadProfile(data.session?.user)
       if (alive) setLoading(false)
     })
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession)
       // Don't await inside the callback — Supabase warns against it.
-      loadProfile(newSession?.user?.id)
+      loadProfile(newSession?.user)
     })
 
     return () => {
@@ -48,7 +71,7 @@ export function AuthProvider({ children }) {
     user: session?.user ?? null,
     profile,
     loading,
-    refreshProfile: () => loadProfile(session?.user?.id),
+    refreshProfile: () => loadProfile(session?.user),
     signOut: () => supabase.auth.signOut(),
   }
 

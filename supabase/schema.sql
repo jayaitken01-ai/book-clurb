@@ -4,6 +4,22 @@
 --  Safe to re-run: it drops and recreates everything.
 -- ============================================================
 
+-- ============================================================
+--  ⚠️  READ THIS IF THE CLUB IS ALREADY USING THE APP
+--
+--  The block below DROPS every table, which wipes reviews,
+--  theories, chapter updates and meetings. That is fine while
+--  you're still setting up, and destructive once you're not.
+--
+--  Once real data exists, select from "drop table" down to
+--  "drop table if exists profiles cascade;" and comment it out
+--  (add -- to the front of each line) before running this file.
+--
+--  Sign-in accounts always survive — they live in Supabase's own
+--  auth system, which this file never touches. Profile details
+--  are restored automatically further down.
+-- ============================================================
+
 -- ---------- clean slate (comment this block out once you have real data!) ----------
 drop table if exists meeting_rsvps cascade;
 drop table if exists meetings cascade;
@@ -59,6 +75,22 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function handle_new_user();
+
+-- Give a profile back to anyone who already had an account.
+--
+-- The trigger above only fires for brand-new sign-ups, so if this file
+-- has been run before, everyone who signed up earlier would be left
+-- without a profile row — signed in, but invisible to the app, and
+-- unable to sign up again because their email is already taken.
+-- This puts them back. It's safe to run any number of times.
+insert into public.profiles (id, full_name, email, phone)
+select u.id,
+       coalesce(u.raw_user_meta_data->>'full_name', split_part(u.email, '@', 1)),
+       u.email,
+       u.raw_user_meta_data->>'phone'
+  from auth.users u
+  left join public.profiles p on p.id = u.id
+ where p.id is null;
 
 -- ============================================================
 --  BOOKS

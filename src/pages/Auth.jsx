@@ -38,7 +38,13 @@ export default function Auth() {
         if (error) throw error
       }
     } catch (err) {
-      setError(err.message)
+      // Supabase's wording for this one confuses people, so say it plainly.
+      const already = /already registered|already exists|User already/i.test(err.message)
+      setError(
+        already
+          ? 'That email already has an account — switch to Sign in instead. (Forgotten the password? Ask whoever set the club up to reset it in Supabase.)'
+          : err.message
+      )
     } finally {
       setBusy(false)
     }

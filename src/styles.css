@@ -810,18 +810,44 @@ button .icon, .btn .icon, .pill .icon, .genre-tag .icon { margin-top: -1px; }
   background: var(--cream);
   width: 100%;
   max-width: 560px;
+
+  /* Cap the sheet at most of the screen. `dvh` tracks the *visible* height
+     on phones, where the browser's own toolbars grow and shrink — plain vh
+     measures the tallest possible viewport, which pushed the top of long
+     forms off-screen. vh first as a fallback for older browsers. */
   max-height: 88vh;
-  overflow-y: auto;
+  max-height: 88dvh;
+
+  /* Header pinned, body scrolls. */
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+
   border-radius: 30px 30px 0 0;
-  padding: 20px 18px calc(24px + env(safe-area-inset-bottom));
   animation: sheet 0.34s var(--bounce) both;
 }
 @keyframes sheet { from { transform: translateY(100%); } to { transform: none; } }
+
+.modal-head {
+  flex: none;
+  padding: 12px 18px 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--cream);
+  border-radius: 30px 30px 0 0;
+}
+.modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 16px 18px calc(24px + env(safe-area-inset-bottom));
+}
 .grabber {
   width: 46px; height: 5px;
   border-radius: 99px;
   background: var(--pink-200);
-  margin: 0 auto 14px;
+  margin: 0 auto 12px;
 }
 
 .spinner {
@@ -857,7 +883,10 @@ button .icon, .btn .icon, .pill .icon, .genre-tag .icon { margin-top: -1px; }
   .tab { flex-direction: row; font-size: 0.86rem; max-width: none; padding: 8px 15px; }
   .tab span.ico { font-size: 1rem; }
   .modal-back { align-items: center; padding: 20px; }
-  .modal { border-radius: 30px 26px 30px 26px; padding: 24px; }
+  .modal { border-radius: 30px 26px 30px 26px; max-height: 86dvh; }
+  .modal-head { border-radius: 30px 26px 0 0; padding: 18px 24px 14px; }
+  .modal-head .grabber { display: none; }
+  .modal-body { padding: 18px 24px 24px; }
   h1 { font-size: 2.5rem; }
   .moods { gap: 8px; }
   .mood { font-size: 0.68rem; }
