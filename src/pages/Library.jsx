@@ -35,13 +35,17 @@ export default function Library() {
 
   useEffect(() => { load() }, [load])
 
-  // Books in the current view, after the search box and genre filter.
+  const searching = Boolean(search.trim())
+
+  // Searching looks everywhere — shelf and TBR — no matter which tab is
+  // open, because you rarely remember which one a book is sitting on.
+  // With the box empty, the tab you're on decides what you see.
   const shown = useMemo(() => {
     if (!books) return []
     const q = search.trim().toLowerCase()
 
     return books
-      .filter((b) => (view === 'tbr' ? b.status === 'tbr' : b.status !== 'tbr'))
+      .filter((b) => searching || (view === 'tbr' ? b.status === 'tbr' : b.status !== 'tbr'))
       .filter((b) => genre === 'all' || (b.genres ?? []).includes(genre))
       .filter((b) => {
         if (!q) return true
@@ -51,14 +55,16 @@ export default function Library() {
           (b.genres ?? []).some((g) => g.toLowerCase().includes(q))
         )
       })
-  }, [books, view, search, genre])
+  }, [books, view, search, genre, searching])
 
   // Every genre actually in use, so the filter never offers an empty one.
   const genresInUse = useMemo(() => {
     if (!books) return []
-    const pool = books.filter((b) => (view === 'tbr' ? b.status === 'tbr' : b.status !== 'tbr'))
+    const pool = searching
+      ? books
+      : books.filter((b) => (view === 'tbr' ? b.status === 'tbr' : b.status !== 'tbr'))
     return [...new Set(pool.flatMap((b) => b.genres ?? []))].sort()
-  }, [books, view])
+  }, [books, view, searching])
 
   if (!books) return <Spinner />
 
@@ -71,7 +77,7 @@ export default function Library() {
     : '—'
 
   const open = (b) => navigate(`/book/${b.id}`)
-  const filtering = Boolean(search.trim()) || genre !== 'all'
+  const filtering = searching || genre !== 'all'
 
   // How the results get grouped up.
   let groups = []
@@ -87,6 +93,13 @@ export default function Library() {
     groups = Object.keys(byGenre).sort((a, b) =>
       a === 'No genre yet' ? 1 : b === 'No genre yet' ? -1 : a.localeCompare(b)
     ).map((g) => ({ title: g, icon: 'tag', books: byGenre[g] }))
+  } else if (searching) {
+    // Results split by where the book actually is, so you can see at a
+    // glance whether it's on the shelf or still on the TBR.
+    groups = [
+      { title: 'On our shelf', icon: 'books',    books: shown.filter((b) => b.status !== 'tbr') },
+      { title: 'On the TBR',   icon: 'bookmark', books: shown.filter((b) => b.status === 'tbr') },
+    ].filter((g) => g.books.length)
   } else if (view === 'tbr') {
     groups = [{ title: null, books: shown }]
   } else {
@@ -156,6 +169,7 @@ export default function Library() {
           <span className="tiny muted" style={{ fontWeight: 800 }}>
             {shown.length} {shown.length === 1 ? 'book' : 'books'}
             {filtering && ' found'}
+            {searching && ' · searching everywhere'}
           </span>
           <button
             className="btn-ghost btn-sm"
@@ -188,7 +202,9 @@ export default function Library() {
           <Empty
             icon="find"
             title="Nothing matches"
-            hint="Try a different word, or clear the genre filter."
+            hint={searching
+              ? 'Nothing on the shelf or the TBR matches that. Try a different word, or clear the genre filter.'
+              : 'Try clearing the genre filter.'}
           />
         ) : view === 'tbr' ? (
           <Empty
