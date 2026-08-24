@@ -7,6 +7,7 @@ import Icon from './components/Icon.jsx'
 import Auth from './pages/Auth.jsx'
 import Home from './pages/Home.jsx'
 import Polls from './pages/Polls.jsx'
+import Calendar from './pages/Calendar.jsx'
 import Theories from './pages/Theories.jsx'
 import Library from './pages/Library.jsx'
 import BookPage from './pages/BookPage.jsx'
@@ -16,8 +17,8 @@ import MemberProfile from './pages/MemberProfile.jsx'
 
 const TABS = [
   { to: '/',         icon: 'home',    label: 'Home' },
-  { to: '/theories', icon: 'thought', label: 'Theories' },
-  { to: '/polls',    icon: 'ballot',  label: 'Polls' },
+  { to: '/theories', icon: 'thought',  label: 'Theories' },
+  { to: '/calendar', icon: 'calendar', label: 'Calendar' },
   { to: '/library',  icon: 'books',   label: 'Library' },
   { to: '/profile',  icon: 'ribbon',  label: 'Me' },
 ]
@@ -68,6 +69,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
         <Route path="/"          element={<Home />} />
         <Route path="/theories"  element={<Theories />} />
         <Route path="/polls"     element={<Polls />} />
+        <Route path="/calendar"  element={<Calendar />} />
         <Route path="/library"   element={<Library />} />
         <Route path="/book/:id"  element={<BookPage />} />
         <Route path="/profile"   element={<Profile />} />

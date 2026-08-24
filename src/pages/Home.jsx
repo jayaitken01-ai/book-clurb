@@ -155,13 +155,27 @@ export default function Home() {
       )}
 
       {/* ---------- next-book poll ---------- */}
-      <Section icon="ballot">What's next?</Section>
+      <div className="section-title">
+        <Icon name="ballot" size={19} />
+        What's next?
+        <span className="spacer" />
+        <Link to="/polls" className="tiny" style={{ fontWeight: 800 }}>
+          Poll archive
+        </Link>
+      </div>
+
       {poll ? <PollPreview poll={poll} /> : (
         <Empty
           icon="ballot"
           title="No poll running"
           hint="Anyone can start one — everybody gets a suggestion."
         />
+      )}
+
+      {(!poll || poll.phase === 'closed') && (
+        <Link to="/polls?new=1" className="btn btn-primary btn-block" style={{ marginTop: 12 }}>
+          <Icon name="plus" size={16} /> Start a poll
+        </Link>
       )}
 
       {/* ---------- club stats ---------- */}

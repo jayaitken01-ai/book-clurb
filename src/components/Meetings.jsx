@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase.js'
 import { Avatar, AvatarLink, Modal, NameLink, Spinner, useConfirm, useToast } from './ui.jsx'
 import Icon from './Icon.jsx'
@@ -82,6 +83,9 @@ export default function Meetings({ userId, currentBook }) {
         <Icon name="calendar" size={19} />
         Meetings
         <span className="spacer" />
+        <Link to="/calendar" className="tiny" style={{ fontWeight: 800, marginRight: 4 }}>
+          Calendar
+        </Link>
         <button className="btn-soft btn-sm" onClick={() => setPosting(true)}>
           <Icon name="plus" size={14} /> Add
         </button>
@@ -139,7 +143,7 @@ export default function Meetings({ userId, currentBook }) {
 }
 
 /* ---------------- one meeting ---------------- */
-function MeetingCard({ meeting, userId, onChange, onEdit, notify }) {
+export function MeetingCard({ meeting, userId, onChange, onEdit, notify }) {
   const [busy, setBusy] = useState(false)
   const [confirmNode, askDelete] = useConfirm()
 
@@ -283,19 +287,19 @@ function MeetingCard({ meeting, userId, onChange, onEdit, notify }) {
 
 /* ---------------- post / edit a meeting ---------------- */
 // <input type="datetime-local"> wants "YYYY-MM-DDTHH:mm" in local time.
-function toLocalInput(iso) {
-  const d = iso ? new Date(iso) : new Date(Date.now() + 7 * 86400000)
-  if (!iso) d.setHours(19, 0, 0, 0)   // default: a week from now, 7pm
+function toLocalInput(iso, fallbackDay) {
+  const d = iso ? new Date(iso) : (fallbackDay ? new Date(`${fallbackDay}T19:00`) : new Date(Date.now() + 7 * 86400000))
+  if (!iso && !fallbackDay) d.setHours(19, 0, 0, 0)   // default: a week from now, 7pm
   const pad = (n) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-function MeetingForm({ userId, currentBook, existing, onClose, onSaved }) {
+export function MeetingForm({ userId, currentBook, existing, onDay, onClose, onSaved }) {
   const [form, setForm] = useState({
     title: existing?.title ?? 'Book club',
     location: existing?.location ?? '',
     agenda: existing?.agenda ?? '',
-    when: toLocalInput(existing?.starts_at),
+    when: toLocalInput(existing?.starts_at, onDay),
   })
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase.js'
 import { useAuth } from '../lib/AuthContext.jsx'
 import {
@@ -21,6 +22,7 @@ import GenrePicker from '../components/GenrePicker.jsx'
  */
 export default function Polls() {
   const { user } = useAuth()
+  const [params, setParams] = useSearchParams()
   const [polls, setPolls] = useState(null)
   const [tbr, setTbr] = useState([])
   const [creating, setCreating] = useState(false)
@@ -78,6 +80,15 @@ export default function Polls() {
   }, [])
 
   useEffect(() => { load() }, [load])
+
+  // Arriving from the "Start a poll" button on the homepage opens the
+  // sheet straight away, so it takes one tap rather than three.
+  useEffect(() => {
+    if (params.get('new') === '1' && polls && !polls.some((p) => p.phase !== 'closed')) {
+      setCreating(true)
+      setParams({}, { replace: true })
+    }
+  }, [params, polls, setParams])
 
   useEffect(() => {
     const ch = supabase

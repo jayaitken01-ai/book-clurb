@@ -476,6 +476,132 @@ textarea { resize: vertical; min-height: 88px; line-height: 1.5; }
 a.stat { text-decoration: none; display: block; transition: transform 0.18s var(--bounce), border-color 0.18s; }
 a.stat:hover { transform: translateY(-3px); border-color: var(--pink-300); }
 
+/* ---------------- calendar ---------------- */
+.cal {
+  background: var(--cream);
+  border: 1px solid var(--line);
+  border-radius: 24px 22px 24px 22px;
+  padding: 14px 12px 12px;
+  box-shadow: var(--shadow);
+  margin-top: 14px;
+}
+.cal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.cal-title {
+  font-family: var(--font-display);
+  font-variation-settings: 'SOFT' 100, 'WONK' 1;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+.cal-title span { color: var(--ink-soft); font-weight: 600; }
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+.cal-days {
+  margin-bottom: 4px;
+}
+.cal-days span {
+  text-align: center;
+  font-size: 0.66rem;
+  font-weight: 800;
+  color: var(--ink-soft);
+  letter-spacing: 0.05em;
+  padding-bottom: 4px;
+}
+
+.cal-day {
+  aspect-ratio: 1;
+  background: transparent;
+  border: 1.5px solid transparent;
+  border-radius: 13px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 0.85rem;
+  min-width: 0;
+}
+.cal-day:hover { background: var(--pink-50); }
+.cal-day.today { color: var(--pink-600); border-color: var(--pink-200); }
+.cal-day.sel {
+  background: linear-gradient(150deg, var(--pink-400), var(--pink-600));
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 5px 13px rgba(217, 75, 135, 0.32);
+}
+.cal-day .n { line-height: 1; }
+
+.dots { display: flex; gap: 2px; height: 5px; align-items: center; }
+.dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  display: block;
+}
+.dot.meeting  { background: var(--pink-500); }
+.dot.birthday { background: var(--lilac-400); }
+.dot.holiday  { background: var(--gold); }
+.cal-day.sel .dot { background: rgba(255, 255, 255, 0.9); }
+
+.cal-foot {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+.legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.day-item { display: flex; align-items: center; gap: 13px; }
+.day-item b { display: block; font-size: 0.95rem; }
+.day-item.birthday { border-color: var(--lilac-400); }
+.day-item.holiday  { border-color: var(--gold); }
+.holiday-mark {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: #fff0d6;
+  color: #a8720f;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+.upcoming-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  background: var(--cream);
+  border: 1px solid var(--line);
+  border-radius: 18px 16px 18px 16px;
+  padding: 10px 12px;
+  transition: border-color 0.18s, transform 0.18s var(--bounce);
+}
+.upcoming-row:hover { border-color: var(--pink-300); transform: translateY(-2px); }
+.datechip.small { width: 44px; padding: 5px 0 6px; }
+.datechip.small .day { font-size: 1.2rem; }
+.datechip.small .mon { font-size: 0.55rem; }
+
 /* ---------------- meetings board ---------------- */
 .meeting { border-color: var(--pink-200); }
 
