@@ -29,15 +29,27 @@ export default function Theories() {
   if (!books) return <Spinner />
 
   const current = books.find((b) => b.status === 'current')
-  const rest = books.filter((b) => b.id !== current?.id)
+
+  // Only books the club has actually picked up. A book sitting on the TBR
+  // hasn't been read by anyone yet, so its board would be an empty room —
+  // and worse, a place to spoil a book nobody has started. Those boards
+  // still exist; you reach them by opening the book from the TBR.
+  const rest = books.filter((b) => b.id !== current?.id && b.status !== 'tbr')
 
   return (
     <div className="page">
       <h1>Theory boards</h1>
-      <p className="muted">Every book keeps its own board — categories, threads and all.</p>
+      <p className="muted">
+        What we're reading now, and every book we've finished. Books waiting on
+        the TBR have boards too — open the book from the Library to see one.
+      </p>
 
-      {books.length === 0 && (
-        <Empty icon="thought" title="No boards yet" hint="Add a book in the Library and its board appears here." />
+      {!current && rest.length === 0 && (
+        <Empty
+          icon="thought"
+          title="No boards yet"
+          hint="Once the club starts a book, its board shows up here. Books still on the TBR keep their own boards too — open one from the Library to find it."
+        />
       )}
 
       {current && (

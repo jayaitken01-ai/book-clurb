@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase.js'
 import { useAuth } from '../lib/AuthContext.jsx'
 import { Cover, Empty, Modal, Section, Spinner, Stars, useToast } from '../components/ui.jsx'
 import Icon from '../components/Icon.jsx'
-import GenrePicker from '../components/GenrePicker.jsx'
+import GenrePicker, { SUGGESTED_SUB } from '../components/GenrePicker.jsx'
 
 const SHELVES = [
   { key: 'current',  title: 'Reading now', icon: 'bookopen' },
@@ -30,7 +30,10 @@ export default function Library() {
       .from('books')
       .select('*, ratings(rating)')
       .order('created_at', { ascending: false })
-    setBooks(data ?? [])
+    setBooks((data ?? []).map((b) => ({
+      ...b,
+      ratings: (b.ratings ?? []).map((r) => ({ ...r, rating: Number(r.rating) })),
+    })))
   }, [])
 
   useEffect(() => { load() }, [load])
@@ -52,7 +55,8 @@ export default function Library() {
         return (
           b.title?.toLowerCase().includes(q) ||
           b.author?.toLowerCase().includes(q) ||
-          (b.genres ?? []).some((g) => g.toLowerCase().includes(q))
+          (b.genres ?? []).some((g) => g.toLowerCase().includes(q)) ||
+          (b.subgenres ?? []).some((g) => g.toLowerCase().includes(q))
         )
       })
   }, [books, view, search, genre, searching])
@@ -254,7 +258,7 @@ function BookTile({ book, onOpen }) {
       {book.author && <span className="tiny muted">{book.author}</span>}
       {avg && (
         <div className="row" style={{ gap: 4, marginTop: 3 }}>
-          <Stars value={Math.round(avg)} size={11} />
+          <Stars value={Math.round(avg * 2) / 2} size={11} />
           <span className="tiny" style={{ color: 'var(--accent-600)', fontWeight: 800 }}>{avg.toFixed(1)}</span>
         </div>
       )}
@@ -271,6 +275,7 @@ function AddBook({ userId, onClose, onAdded }) {
     title: '', author: '', description: '', total_chapters: 30, status: 'upcoming',
   })
   const [genres, setGenres] = useState([])
+  const [subgenres, setSubgenres] = useState([])
   const [coverUrl, setCoverUrl] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -302,6 +307,7 @@ function AddBook({ userId, onClose, onAdded }) {
       author: form.author.trim() || null,
       description: form.description.trim() || null,
       genres,
+      subgenres,
       total_chapters: Number(form.total_chapters) || 1,
       status: form.status,
       cover_url: coverUrl,
@@ -356,6 +362,22 @@ function AddBook({ userId, onClose, onAdded }) {
       <div className="field">
         <label>Genres</label>
         <GenrePicker value={genres} onChange={setGenres} />
+        <p className="muted tiny" style={{ marginTop: 6 }}>
+          These are what the Library sorts by.
+        </p>
+      </div>
+      <div className="field" style={{ marginTop: 13 }}>
+        <label>Subgenres</label>
+        <GenrePicker
+          value={subgenres}
+          onChange={setSubgenres}
+          suggestions={SUGGESTED_SUB}
+          placeholder="Add your own subgenre…"
+        />
+        <p className="muted tiny" style={{ marginTop: 6 }}>
+          The finer detail. These show on the book's page, and searching finds
+          them — but they don't split the Library into extra sections.
+        </p>
       </div>
       <div className="field" style={{ marginTop: 13 }}>
         <label>Description</label>

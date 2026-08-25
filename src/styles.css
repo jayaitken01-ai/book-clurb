@@ -356,6 +356,16 @@ textarea { resize: vertical; min-height: 88px; line-height: 1.5; }
   font-size: 0.74rem;
   font-weight: 800;
 }
+/* Subgenres sit one step quieter than the genres above them — same shape,
+   less shouting, so the eye reads the main genres first. */
+.genre-tag.sub {
+  background: transparent;
+  color: var(--ink-soft);
+  border: 1.5px dashed var(--line);
+  font-size: 0.71rem;
+  font-weight: 700;
+  padding: 3px 11px;
+}
 
 /* ---------------- progress ---------------- */
 .bar {
@@ -754,6 +764,43 @@ button .icon, .btn .icon, .pill .icon, .genre-tag .icon { margin-top: -1px; }
 }
 .star.on { color: var(--gold); transform: scale(1.06); }
 .stars.readonly .star { cursor: default; }
+
+/* One star = one slot. The gold copy sits on top of the outline and gets
+   clipped to 50% for a half. */
+.star-slot {
+  position: relative;
+  display: inline-block;
+  flex: none;
+  line-height: 0;
+}
+.star-slot .star {
+  position: absolute;
+  inset: 0;
+  padding: 0;
+  display: block;
+}
+.star-fill {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+/* The two tap targets. Invisible, stacked over the star, left half then
+   right half — half a star and a whole one. */
+.star-hit {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+  z-index: 2;
+}
+.star-hit.left  { left: 0; }
+.star-hit.right { right: 0; }
 
 /* ---------------- like ---------------- */
 .like {

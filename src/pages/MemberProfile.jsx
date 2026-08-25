@@ -37,7 +37,7 @@ export default function MemberProfile() {
 
     setStats({ finished: fin.count ?? 0, reviewed: rev.count ?? 0, threads: th.count ?? 0 })
 
-    const rows = recent.data ?? []
+    const rows = (recent.data ?? []).map((r) => ({ ...r, rating: Number(r.rating) }))
     if (rows.length) {
       const { data: books } = await supabase
         .from('books')

@@ -7,7 +7,25 @@ export const SUGGESTED = [
   'Memoir', 'Non-fiction', 'Poetry', 'Classic',
 ]
 
-export default function GenrePicker({ value = [], onChange }) {
+// The narrower labels. These are deliberately kept out of the Library's
+// sections and filter chips — with a shelf this size, sorting by
+// "Psychological thriller" and "Domestic thriller" separately would leave
+// every section holding one book. They live on the book's own page.
+export const SUGGESTED_SUB = [
+  'Psychological thriller', 'Domestic thriller', 'Cosy mystery', 'True crime',
+  'Dark romance', 'Paranormal romance', 'Historical romance', 'Second chance',
+  'Enemies to lovers', 'Slow burn', 'High fantasy', 'Urban fantasy',
+  'Cosy fantasy', 'Portal fantasy', 'Fae', 'Vampires', 'Dragons',
+  'Gothic', 'Magical realism', 'Dystopian', 'Post-apocalyptic', 'Space opera',
+  'Retelling', 'Coming of age',
+]
+
+export default function GenrePicker({
+  value = [],
+  onChange,
+  suggestions = SUGGESTED,
+  placeholder = 'Add your own…',
+}) {
   const [custom, setCustom] = useState('')
 
   const toggle = (g) =>
@@ -20,12 +38,12 @@ export default function GenrePicker({ value = [], onChange }) {
     setCustom('')
   }
 
-  const extras = value.filter((v) => !SUGGESTED.includes(v))
+  const extras = value.filter((v) => !suggestions.includes(v))
 
   return (
     <>
       <div className="row-wrap" style={{ gap: 6, marginBottom: 10 }}>
-        {SUGGESTED.map((g) => (
+        {suggestions.map((g) => (
           <button
             key={g}
             type="button"
@@ -49,7 +67,7 @@ export default function GenrePicker({ value = [], onChange }) {
           onKeyDown={(e) => {
             if (e.key === 'Enter') { e.preventDefault(); addCustom() }
           }}
-          placeholder="Add your own…"
+          placeholder={placeholder}
           maxLength={30}
         />
         <button type="button" className="btn-soft btn-sm" onClick={addCustom}>Add</button>

@@ -8,7 +8,7 @@ import {
 import Icon from '../components/Icon.jsx'
 import TheoryBoard from '../components/TheoryBoard.jsx'
 import ChapterFeed from '../components/ChapterFeed.jsx'
-import GenrePicker from '../components/GenrePicker.jsx'
+import GenrePicker, { SUGGESTED_SUB } from '../components/GenrePicker.jsx'
 
 const TABS = [
   { key: 'reviews',  label: 'Reviews' },
@@ -83,6 +83,14 @@ export default function BookPage() {
         </div>
       )}
 
+      {book.subgenres?.length > 0 && (
+        <div className="row-wrap" style={{ gap: 6, marginTop: 7 }}>
+          {book.subgenres.map((g) => (
+            <span className="genre-tag sub" key={g}>{g}</span>
+          ))}
+        </div>
+      )}
+
       {book.description && (
         <p style={{ marginTop: 14, fontSize: '0.92rem' }}>{book.description}</p>
       )}
@@ -121,7 +129,7 @@ function ReviewsTab({ book, userId, onBookChange }) {
       .select('*, profiles(*)')
       .eq('book_id', book.id)
       .order('updated_at', { ascending: false })
-    setReviews(data ?? [])
+    setReviews((data ?? []).map((r) => ({ ...r, rating: Number(r.rating) })))
   }, [book.id])
 
   useEffect(() => { load() }, [load])
@@ -132,7 +140,9 @@ function ReviewsTab({ book, userId, onBookChange }) {
   const avg = reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : null
   const spread = [5, 4, 3, 2, 1].map((n) => ({
     n,
-    count: reviews.filter((r) => r.rating === n).length,
+    // A 4.5 belongs with the fives, a 3.5 with the fours — each row is
+    // "n stars, give or take a half".
+    count: reviews.filter((r) => Math.ceil(r.rating) === n).length,
   }))
   const yes = reviews.filter((r) => r.recommend === 'yes').length
   const answered = reviews.filter((r) => r.recommend).length
@@ -146,7 +156,7 @@ function ReviewsTab({ book, userId, onBookChange }) {
           <div className="row" style={{ gap: 18, alignItems: 'center' }}>
             <div className="center" style={{ flex: 'none' }}>
               <div className="big-score">{avg.toFixed(1)}</div>
-              <Stars value={Math.round(avg)} size={14} />
+              <Stars value={Math.round(avg * 2) / 2} size={14} />
               <div className="tiny muted" style={{ marginTop: 3 }}>
                 {reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}
               </div>
@@ -331,9 +341,18 @@ function ReviewForm({ book, userId, existing, onClose, onSaved }) {
       </p>
 
       <label>Overall</label>
-      <div style={{ marginBottom: 15 }}>
-        <Stars value={form.rating} onChange={(n) => setForm((f) => ({ ...f, rating: n }))} size={32} />
+      {/* Big stars, and the number spelled out beside them — half-star taps
+          land on a narrow target, so it needs to be obvious when a 4 came
+          out as a 3.5. */}
+      <div className="row" style={{ gap: 12, alignItems: 'center', marginBottom: 15 }}>
+        <Stars value={form.rating} onChange={(n) => setForm((f) => ({ ...f, rating: n }))} size={40} />
+        <b style={{ fontSize: '1.05rem', color: 'var(--accent-700)' }}>
+          {form.rating ? `${form.rating}/5` : ''}
+        </b>
       </div>
+      <p className="muted tiny" style={{ margin: '-9px 0 15px' }}>
+        Tap the left side of a star for a half.
+      </p>
 
       <div className="field">
         <label>In one line</label>
@@ -461,6 +480,7 @@ function EditBook({ book, userId, onClose, onSaved }) {
     total_chapters: book.total_chapters ?? 1,
   })
   const [genres, setGenres] = useState(book.genres ?? [])
+  const [subgenres, setSubgenres] = useState(book.subgenres ?? [])
   const [coverUrl, setCoverUrl] = useState(book.cover_url ?? null)
   const [uploading, setUploading] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -497,6 +517,7 @@ function EditBook({ book, userId, onClose, onSaved }) {
         total_chapters: Number(form.total_chapters) || 1,
         cover_url: coverUrl,
         genres,
+        subgenres,
       })
       .eq('id', book.id)
     setBusy(false)
@@ -546,6 +567,22 @@ function EditBook({ book, userId, onClose, onSaved }) {
       <div className="field">
         <label>Genres</label>
         <GenrePicker value={genres} onChange={setGenres} />
+        <p className="muted tiny" style={{ marginTop: 6 }}>
+          These are what the Library sorts by.
+        </p>
+      </div>
+      <div className="field" style={{ marginTop: 13 }}>
+        <label>Subgenres</label>
+        <GenrePicker
+          value={subgenres}
+          onChange={setSubgenres}
+          suggestions={SUGGESTED_SUB}
+          placeholder="Add your own subgenre…"
+        />
+        <p className="muted tiny" style={{ marginTop: 6 }}>
+          The finer detail. These show here and searching finds them, but they
+          don't split the Library into extra sections.
+        </p>
       </div>
       <div className="field" style={{ marginTop: 13 }}>
         <label>Description</label>

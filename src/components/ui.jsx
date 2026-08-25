@@ -60,22 +60,54 @@ export function Cover({ book, w = 96 }) {
 }
 
 /* ---------- Star rating ---------- */
+/**
+ * Ratings in half-star steps.
+ *
+ * Each star is one slot: an outline with a gold copy layered on top,
+ * clipped to whatever fraction is earned — full, half, or nothing. When
+ * it's tappable the slot carries two invisible buttons side by side, so
+ * the left of a star means "and a half" and the right means the whole
+ * thing. Two 16px targets per star is small but reliable at size 32,
+ * which is what the review form uses.
+ */
 export function Stars({ value = 0, onChange, size = 20 }) {
   const readonly = !onChange
   return (
     <span className={`stars${readonly ? ' readonly' : ''}`}>
-      {[1, 2, 3, 4, 5].map((n) => (
-        <button
-          key={n}
-          type="button"
-          className={`star${n <= value ? ' on' : ''}`}
-          onClick={readonly ? undefined : () => onChange(n)}
-          aria-label={`${n} ${n === 1 ? 'star' : 'stars'}`}
-          tabIndex={readonly ? -1 : 0}
-        >
-          <Icon name="star" size={size} filled={n <= value} />
-        </button>
-      ))}
+      {[1, 2, 3, 4, 5].map((n) => {
+        // How much of THIS star is filled: all of it, half, or none.
+        const pct = value >= n ? 100 : value >= n - 0.5 ? 50 : 0
+        return (
+          <span className="star-slot" key={n} style={{ width: size, height: size }}>
+            <span className={`star${pct ? ' on' : ''}`}>
+              <Icon name="star" size={size} />
+            </span>
+            {pct > 0 && (
+              <span className="star-fill" style={{ width: `${pct}%` }}>
+                <span className="star on">
+                  <Icon name="star" size={size} filled />
+                </span>
+              </span>
+            )}
+            {!readonly && (
+              <>
+                <button
+                  type="button"
+                  className="star-hit left"
+                  onClick={() => onChange(n - 0.5)}
+                  aria-label={`${n - 0.5} stars`}
+                />
+                <button
+                  type="button"
+                  className="star-hit right"
+                  onClick={() => onChange(n)}
+                  aria-label={`${n} ${n === 1 ? 'star' : 'stars'}`}
+                />
+              </>
+            )}
+          </span>
+        )
+      })}
     </span>
   )
 }
